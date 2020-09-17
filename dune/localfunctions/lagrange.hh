@@ -7,10 +7,16 @@
  * \brief Convenience header that includes all implementations of Lagrange finite elements
  */
 
+#include <cassert>
+#include <map>
+
+#include <dune/geometry/type.hh>
+
 // Headers for Lagrange elements with run-time order
 #include <dune/localfunctions/utility/localfiniteelement.hh>
 #include <dune/localfunctions/utility/dglocalcoefficients.hh>
 
+#include <dune/localfunctions/lagrange/equidistantpoints.hh>
 #include <dune/localfunctions/lagrange/lagrangecoefficients.hh>
 #include <dune/localfunctions/lagrange/interpolation.hh>
 #include <dune/localfunctions/lagrange/lagrangebasis.hh>
@@ -88,6 +94,48 @@ namespace Dune
     LagrangeLocalFiniteElement ( const GeometryType &gt, unsigned int order )
       : Base( gt, order )
     {}
+  };
+
+
+  /// \brief Cache for the generic \ref LagrangeLocalFiniteElement
+  /**
+   * Caches a LagrangeLocalFiniteElement instance for each GeometryType. This cache is
+   * initialized with the polynomial order of the Lagrange basis functions. The concrete
+   * local finite-element can be obtained by calling `cache.get(GeometryType)`.
+   *
+   * \tparam D          Field-type of the domain of the local basis functions
+   * \tparam R          Field-type of the range of the local basis functions
+   * \tparam dimDomain  Dimension of reference elements
+   * \tparam LP         Lagrange point-set template <class Field, unsigned int dim>,
+   *                    default: \ref EquidistantPointSet
+   **/
+  template <class D, class R, int dimDomain,
+            template <class,unsigned int> class LP = EquidistantPointSet>
+  class LagrangeLFECache
+  {
+  public:
+    using FiniteElementType = LagrangeLocalFiniteElement<LP, dimDomain, D, R>;
+
+    /// \brief store the polynomial order of the Lagrange basis functions. The order is
+    /// required to be greater than zero.
+    LagrangeLFECache (int order)
+      : order_(order)
+    {
+      assert(order > 0);
+    }
+
+    /// \brief obtain a local finite-element for the given GeometryType and stored order.
+    const FiniteElementType& get (GeometryType type)
+    {
+      auto it = data_.find(type);
+      if (it == data_.end())
+        it = data_.emplace(type,FiniteElementType(type,order_)).first;
+      return it->second;
+    }
+
+  private:
+    unsigned int order_;
+    std::map<GeometryType, FiniteElementType> data_;
   };
 }
 
