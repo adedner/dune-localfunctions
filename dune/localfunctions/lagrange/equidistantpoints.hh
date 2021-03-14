@@ -182,7 +182,7 @@ namespace Dune
     bool buildCube ()
     {
       using namespace Impl;
-      return build< typename CubeTopology< dim >::type > ();
+      return build< GeometryTypes::cube(dim) > ();
     }
 
     static bool supports ( GeometryType gt, std::size_t order ) { return true; }

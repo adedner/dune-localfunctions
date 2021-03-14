@@ -53,13 +53,13 @@ namespace Dune
     unsigned int cols_;
   };
 
-  template< class Topology, class F,
+  template< GeometryType::Id id, class F,
       class Interpolation,
       class Field >
-  struct BasisMatrix< const MonomialBasis< Topology, F >, Interpolation, Field >
-    : public BasisMatrixBase< const MonomialBasis< Topology, F >, Interpolation, Field >
+  struct BasisMatrix< const MonomialBasis< id, F >, Interpolation, Field >
+    : public BasisMatrixBase< const MonomialBasis< id, F >, Interpolation, Field >
   {
-    typedef const MonomialBasis< Topology, F > PreBasis;
+    typedef const MonomialBasis< id, F > PreBasis;
     typedef BasisMatrixBase<PreBasis,Interpolation,Field> Base;
     typedef typename Base::Matrix Matrix;
 
