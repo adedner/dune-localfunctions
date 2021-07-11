@@ -29,6 +29,48 @@ double TOL = 1e-9;
 // precision -- so we have to be a little bit more tolerant here.
 double jacobianTOL = 1e-5;  // sqrt(TOL)
 
+// This class wraps one shape function of a local finite element as a function
+// that can be feed to the LocalInterpolation::interpolate method.
+template<class FE>
+class ShapeFunctionAsFunction
+{
+public:
+  typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+  typedef typename FE::Traits::LocalBasisType::Traits::JacobianType JacobianType;
+
+  struct Traits {
+    typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
+    typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+    typedef typename FE::Traits::LocalBasisType::Traits::JacobianType JacobianType;
+  };
+
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeFieldType CT;
+
+  ShapeFunctionAsFunction(const FE& fe, int shapeFunction) :
+    fe_(fe),
+    shapeFunction_(shapeFunction)
+  {}
+
+  void evaluate (const DomainType& x, RangeType& y) const
+  {
+    std::vector<RangeType> yy;
+    fe_.localBasis().evaluateFunction(x, yy);
+    y = yy[shapeFunction_];
+  }
+
+  void jacobian (const DomainType& x, JacobianType& y) const
+  {
+    std::vector<JacobianType> J;
+    fe_.localBasis().evaluateJacobian(x, J);
+    y = J[shapeFunction_];
+  }
+
+private:
+  const FE& fe_;
+  int shapeFunction_;
+};
+
 // This class wraps one shape function of a local finite element as a callable
 // that can be fed to the LocalInterpolation::interpolate method.
 template<class FE>
@@ -37,6 +79,7 @@ class ShapeFunctionAsCallable
   // These types are deliberately private: They are not part of a Callable API
   typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
   typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+  typedef typename FE::Traits::LocalBasisType::Traits::JacobianType JacobianType;
 public:
 
   typedef typename FE::Traits::LocalBasisType::Traits::RangeFieldType CT;
@@ -50,6 +93,13 @@ public:
   {
     std::vector<RangeType> yy;
     fe_.localBasis().evaluateFunction(x, yy);
+    return yy[shapeFunction_];
+  }
+
+  JacobianType derivative (DomainType x) const
+  {
+    std::vector<JacobianType> yy;
+    fe_.localBasis().evaluateJacobian(x, yy);
     return yy[shapeFunction_];
   }
 
@@ -108,6 +158,14 @@ bool testLocalInterpolation(const FE& fe)
   return true;
 }
 
+template<class Domain, class Range>
+struct ConstantOneFunction
+{
+  Range operator() (const Domain&) const { return Range(1.0); }
+
+  Domain derivative (const Domain&) const { return Domain(0.0); }
+};
+
 
 // Check whether the space spanned by the shape functions
 // contains the constant functions
@@ -121,7 +179,7 @@ bool testCanRepresentConstants(const FE& fe,
   bool success = true;
 
   // Construct the constant '1' function
-  auto constantOne = [](const typename LB::Traits::DomainType& xi) { return RangeType(1.0); };
+  auto constantOne = ConstantOneFunction<typename LB::Traits::DomainType,RangeType>{};
 
   // Project the constant function onto the FE space
   std::vector<double> coefficients;
