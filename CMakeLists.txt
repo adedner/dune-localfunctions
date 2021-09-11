@@ -1,8 +1,5 @@
-# set up project
-project("dune-localfunctions" C CXX)
-
-# general stuff
 cmake_minimum_required(VERSION 3.13)
+project("dune-localfunctions" C CXX)
 
 # guess dune-common build dir
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
@@ -20,7 +17,7 @@ list(APPEND CMAKE_MODULE_PATH ${dune-common_MODULE_PATH}
 include(DuneMacros)
 
 # start a dune project with information from dune.module
-dune_project()
+dune_project(dunelocalfunctions)
 
 add_subdirectory(doc)
 add_subdirectory(dune)
