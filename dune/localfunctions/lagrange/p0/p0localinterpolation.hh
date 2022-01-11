@@ -31,7 +31,7 @@ namespace Dune
       DomainType x = Dune::ReferenceElements<DF,dim>::general(gt_).position(0,0);
 
       out.resize(1);
-      out[0] = f(x);
+      out[0] = static_cast<C>(f(x));
     }
 
   private:

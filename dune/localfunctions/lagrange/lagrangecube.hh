@@ -659,7 +659,7 @@ namespace Dune { namespace Impl
       if (k==0)
       {
         auto center = ReferenceElements<D,dim>::cube().position(0,0);
-        out[0] = f(center);
+        out[0] = static_cast<C>(f(center));
         return;
       }
 
@@ -672,7 +672,7 @@ namespace Dune { namespace Impl
           for (int j=0; j<dim; j++)
             x[j] = (i & (1<<j)) ? 1.0 : 0.0;
 
-          out[i] = f(x);
+          out[i] = static_cast<C>(f(x));
         }
         return;
       }
@@ -687,7 +687,7 @@ namespace Dune { namespace Impl
         for (unsigned int j=0; j<dim; j++)
           x[j] = (1.0*alpha[j])/k;
 
-        out[i] = f(x);
+        out[i] = static_cast<C>(f(x));
       }
     }
 

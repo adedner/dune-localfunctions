@@ -20,6 +20,7 @@
 
 #include <dune/common/classname.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/simd/loop.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 
@@ -82,14 +83,17 @@ public:
  * \param eps Tolerance when comparing floating-point values
  * \param n   Number of times to run the check.
  */
-template<class FE>
+template<class FE, class TargetFieldType = typename FEFunction<FE>::CT>
 bool testInterpolation(const FE& fe, double eps, int n=5)
 {
+  using std::abs;
+  using std::max;
+
   bool success = true;
   FEFunction<FE> f(fe);
 
-  std::vector<typename FEFunction<FE>::CT> coeff;
-  std::vector<typename FEFunction<FE>::CT> coeff2;
+  std::vector<TargetFieldType> coeff;
+  std::vector<TargetFieldType> coeff2;
   for(int i=0; i<n && success; ++i) {
     // Set random coefficient vector
     f.setRandom(100);
@@ -114,12 +118,17 @@ bool testInterpolation(const FE& fe, double eps, int n=5)
       return y;
     };
     fe.interpolation().interpolate(callableF, coeff2);
-    if (coeff != coeff2) {
-      std::cout << "Passing callable and function with evaluate yields different "
-                << "interpolation weights for finite element type "
-                << Dune::className<FE>() << ":" << std::endl;
-      success = false;
-    }
+
+    for(size_t j=0; j<coeff.size(); ++j)
+      {
+        if (Dune::Simd::anyTrue(coeff[j] != coeff2[j])) {
+            std::cout << "Passing callable and function with evaluate yields different "
+                      << "interpolation weights for finite element type "
+                      << Dune::className<FE>() << ":" << std::endl;
+            success = false;
+            continue;
+        }
+      }
 
     // Check size of weight vector
     if (coeff.size() != fe.basis().size()) {
@@ -137,14 +146,14 @@ bool testInterpolation(const FE& fe, double eps, int n=5)
 
     // Check if interpolation weights are equal to coefficients
     for(std::size_t j=0; j<coeff.size() && success; ++j) {
-      if ( std::abs(coeff[j]-f.coeff[j]) >
-           (2*coeff.size()*eps)*(std::max(std::abs(f.coeff[j]), 1.0)) )
+      if ( Dune::Simd::anyTrue(abs(coeff[j]-f.coeff[j]) >
+                               (2*coeff.size()*eps)*(max(abs(f.coeff[j]), 1.0)) ))
       {
         std::cout << std::setprecision(16);
         std::cout << "Bug in LocalInterpolation for finite element type "
                   << Dune::className<FE>() << ":" << std::endl;
         std::cout << "    Interpolation weight " << j << " differs by "
-                  << std::abs(coeff[j]-f.coeff[j]) << " from coefficient of "
+                  << abs(coeff[j]-f.coeff[j]) << " from coefficient of "
                   << "linear combination." << std::endl;
         std::cout << std::endl;
         success = false;
@@ -283,6 +292,8 @@ bool testFE(const Geo &geo, const FE& fe, double eps, double delta,
   bool success = true;
 
   success = testInterpolation(fe, eps) and success;
+  typedef typename FE::Traits::Basis::Traits::RangeField CT;
+  success = testInterpolation<FE, Dune::LoopSIMD<CT, 4>>(fe, eps) and success;
   success = testJacobian(geo, fe, eps, delta, order) and success;
 
   return success;
