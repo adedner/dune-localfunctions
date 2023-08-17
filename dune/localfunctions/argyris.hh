@@ -16,7 +16,7 @@
 #include <dune/localfunctions/common/localinterpolation.hh>
 #include <dune/localfunctions/common/localkey.hh>
 
-#include <dune/c1elements/tensormatvec.hpp>
+#include <dune/localfunctions/tensormatvec.hh>
 #include <dune/localfunctions/morley.hh>
 #include <dune/localfunctions/polynomialbasiscoefficients.hh>
 #include <dune/localfunctions/utility/polynomialbasis.hh>

@@ -22,7 +22,7 @@
 #include <dune/localfunctions/polynomialbasiscoefficients.hh>
 #include <dune/localfunctions/utility/polynomialbasis.hh>
 
-#include <dune/c1elements/tensormatvec.hpp>
+#include <dune/localfunctions/tensormatvec.hh>
 
 namespace Dune
 {
