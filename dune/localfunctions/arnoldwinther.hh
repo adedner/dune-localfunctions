@@ -1,3 +1,7 @@
+// -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+// vi: set et ts=4 sw=2 sts=2:
+// SPDX-FileCopyrightInfo: Copyright © DUNE Project contributors, see file LICENSE.md in module root
+// SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 #ifndef DUNE_LOCALFUNCTIONS_ARNOLDWINTHER_HH
 #define DUNE_LOCALFUNCTIONS_ARNOLDWINTHER_HH
 
@@ -124,7 +128,7 @@ namespace Dune{
             sum += qp.weight() * f(QP) * geo.integrationElement(qp.position());
           else if constexpr (order == 1u)
           {
-            static_assert(Geometry::mydimension == 1, "First order moment only implememted for 1 dimensional facets");
+            static_assert(Geometry::mydimension == 1, "First order moment only implemented for 1 dimensional facets");
             sum += qp.weight() * c_type(qp.position()) * f(QP) * geo.integrationElement(qp.position());
           }
           else
