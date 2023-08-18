@@ -140,9 +140,7 @@ namespace Dune
       //! number of coefficients
       static constexpr size_type size()
       {
-        if (dim > 3)
-          DUNE_THROW(NotImplemented,
-                     "HermiteLocalCoefficients only implemented for dim==1!");
+        static_assert(dim<=3, "HermiteLocalCoefficients only implemented for dim==1!");
         return dim == 1 ? 4 : dim == 2 ? 10
                                        : 20;
       }
@@ -155,7 +153,7 @@ namespace Dune
     };
 
     /** \brief
-     * Note: The wrapper classes in c1elements/functions/functionspacebases do not use this class.
+     * Note: The wrapper classes in dune/functions/functionspacebases do not use this class.
      *
      * Evaluate the degrees of freedom of a Hermite basis. This class provides a template
      * hook pattern, which allows switching between the local(reference) Interpolation and the
