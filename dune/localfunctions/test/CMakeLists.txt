@@ -33,6 +33,9 @@ dune_add_test(SOURCES test-finiteelementcache.cc)
 
 dune_add_test(SOURCES globalmonomialfunctionstest.cc)
 
+dune_add_test(SOURCES test-lobattocube.cc)
+dune_add_test(SOURCES test-lobattosimplex.cc)
+
 dune_add_test(SOURCES test-pk2d.cc)
 
 dune_add_test(SOURCES test-power-monomial.cc)
