@@ -40,6 +40,8 @@ SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 * The deprecated functions `numLagrangePoints(topologyId,...)`
   `equidistantLagrangePoints(topologyId,...)` have been removed.
 
+* Deprecate `Dune::Precision` as the definition is not clear.
+
 
 # Release 2.9
 
