@@ -3,6 +3,9 @@
 // SPDX-FileCopyrightInfo: Copyright © DUNE Project contributors, see file LICENSE.md in module root
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 #include <config.h>
+
+#include <dune/common/mpfrfield.hh>
+
 #include <dune/localfunctions/raviartthomas/raviartthomassimplex/raviartthomassimplexbasis.hh>
 #include <dune/localfunctions/utility/field.hh>
 #include <dune/localfunctions/utility/basisprint.hh>
@@ -26,9 +29,9 @@
  * activate this function.
  */
 
-#if HAVE_GMP
-typedef Dune::GMPField< 128 > StorageField;
-typedef Dune::GMPField< 512 > ComputeField;
+#if HAVE_MPFR
+typedef Dune::MPFRField< 128 > StorageField;
+typedef Dune::MPFRField< 512 > ComputeField;
 #else
 typedef double StorageField;
 typedef double ComputeField;

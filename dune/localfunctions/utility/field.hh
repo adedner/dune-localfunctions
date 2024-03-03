@@ -5,9 +5,11 @@
 #ifndef DUNE_LOCALFUNCTIONS_UTILITY_FIELD_HH
 #define DUNE_LOCALFUNCTIONS_UTILITY_FIELD_HH
 
-#include <dune/common/gmpfield.hh>
+#include <dune/common/deprecated.hh>
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/gmpfield.hh>
+#include <dune/common/mpfrfield.hh>
 
 namespace Dune
 {
@@ -88,10 +90,28 @@ namespace Dune
   };
 
 #if HAVE_GMP
+DUNE_NO_DEPRECATED_BEGIN
   template< unsigned int precision >
   struct Zero< GMPField< precision > >
   {
     typedef GMPField< precision > Field;
+    operator Field () const
+    {
+      return Field( 0 );
+    }
+    static const Field epsilon()
+    {
+      return Field(1e-20);
+    }
+  };
+DUNE_NO_DEPRECATED_END
+#endif
+
+#if HAVE_MPFR
+  template< unsigned int precision >
+  struct Zero< MPFRField< precision > >
+  {
+    typedef MPFRField< precision > Field;
     operator Field () const
     {
       return Field( 0 );
@@ -162,6 +182,7 @@ namespace Dune
   }
 
 #if HAVE_GMP
+DUNE_NO_DEPRECATED_BEGIN
   template< unsigned int precision >
   inline void field_cast ( const Dune::GMPField< precision > &f1, double &f2 )
   {
@@ -172,6 +193,21 @@ namespace Dune
   inline void field_cast ( const Dune::GMPField< precision > &f1, long double &f2 )
   {
     f2 = f1.get_d();
+  }
+DUNE_NO_DEPRECATED_END
+#endif
+
+#if HAVE_MPFR
+  template< unsigned int precision >
+  inline void field_cast ( const Dune::MPFRField< precision > &f1, double &f2 )
+  {
+    f2 = f1.toDouble();
+  }
+
+  template< unsigned int precision >
+  inline void field_cast ( const Dune::MPFRField< precision > &f1, long double &f2 )
+  {
+    f2 = f1.toLongDouble();
   }
 #endif
 
@@ -282,8 +318,18 @@ namespace Dune
   };
 
 #if HAVE_GMP
+DUNE_NO_DEPRECATED_BEGIN
   template< unsigned int precision >
   struct Precision< GMPField< precision > >
+  {
+    static const unsigned int value = precision;
+  };
+DUNE_NO_DEPRECATED_END
+#endif
+
+#if HAVE_MPFR
+  template< unsigned int precision >
+  struct Precision< MPFRField< precision > >
   {
     static const unsigned int value = precision;
   };
@@ -299,10 +345,20 @@ namespace Dune
   };
 
 #if HAVE_GMP
+DUNE_NO_DEPRECATED_BEGIN
   template< unsigned int precision, unsigned int sum >
   struct ComputeField< GMPField< precision >, sum >
   {
     typedef GMPField<precision+sum> Type;
+  };
+DUNE_NO_DEPRECATED_END
+#endif
+
+#if HAVE_MPFR
+  template< unsigned int precision, unsigned int sum >
+  struct ComputeField< MPFRField< precision >, sum >
+  {
+    typedef MPFRField<precision+sum> Type;
   };
 #endif
 } // namespace Dune

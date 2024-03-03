@@ -13,7 +13,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include <dune/common/gmpfield.hh>
+#include <dune/common/mpfrfield.hh>
 
 // Lagrange type elements
 #include <dune/localfunctions/lagrange.hh>
@@ -49,14 +49,14 @@ int main(int argc, char** argv) try
     lagrangeCube(Dune::GeometryTypes::cube(2), order);
     TEST_FE(lagrangeCube);
   }
-#if HAVE_GMP
+#if HAVE_MPFR
   std::cout << "Testing LagrangeLocalFiniteElement<EquidistantPointSet> on 2d"
             << " simplex elements with higher precision" << std::endl;
   for (unsigned int order : {5, 8})
   {
     std::cout << "order : " << order << std::endl;
     Dune::LagrangeLocalFiniteElement<Dune::EquidistantPointSet,2,double,double,
-        Dune::GMPField<64>,Dune::GMPField<256> >
+        Dune::MPFRField<64>,Dune::MPFRField<256> >
     lagrangeSimplex(Dune::GeometryTypes::simplex(2), order);
     TEST_FE(lagrangeSimplex);
   }
@@ -79,14 +79,14 @@ int main(int argc, char** argv) try
     Dune::L2LocalFiniteElement<FE> dglagrangeCube(Dune::GeometryTypes::cube(3), order);
     TEST_FE(dglagrangeCube);
   }
-#if HAVE_GMP
+#if HAVE_MPFR
   std::cout << "Testing OrthonormalFiniteElement on 3d"
             << " prism elements with higher precision" << std::endl;
   for (unsigned int order : {6})
   {
     std::cout << "order : " << order << std::endl;
     Dune::OrthonormalLocalFiniteElement<3,double,double,
-        Dune::GMPField<64>,Dune::GMPField<256> >
+        Dune::MPFRField<64>,Dune::MPFRField<256> >
     onbPrism(Dune::GeometryTypes::prism, order);
     TEST_FE(onbPrism);
   }

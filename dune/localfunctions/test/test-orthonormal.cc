@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 #include <config.h>
 
+#include <dune/common/mpfrfield.hh>
+
 #include <dune/geometry/type.hh>
 #include <dune/geometry/quadraturerules.hh>
 
@@ -30,9 +32,9 @@
  * activate this function.
  */
 
-#if HAVE_GMP
-typedef Dune::GMPField< 128 > StorageField;
-typedef Dune::GMPField< 512 > ComputeField;
+#if HAVE_MPFR
+typedef Dune::MPFRField< 128 > StorageField;
+typedef Dune::MPFRField< 512 > ComputeField;
 #else
 typedef double StorageField;
 typedef double ComputeField;
