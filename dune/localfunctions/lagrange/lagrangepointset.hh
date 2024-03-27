@@ -2,8 +2,8 @@
 // vi: set et ts=4 sw=2 sts=2:
 // SPDX-FileCopyrightInfo: Copyright © DUNE Project contributors, see file LICENSE.md in module root
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
-#ifndef DUNE_LAGRANGE_EMPTYPOINTS_HH
-#define DUNE_LAGRANGE_EMPTYPOINTS_HH
+#ifndef DUNE_LOCALFUNCTIONS_LAGRANGE_LAGRANGEPOINTSET_HH
+#define DUNE_LOCALFUNCTIONS_LAGRANGE_LAGRANGEPOINTSET_HH
 
 #include <vector>
 
@@ -13,6 +13,11 @@
 namespace Dune
 {
 
+  /** \brief A single Lagrange point
+   *
+   * \tparam F Number type
+   * \tparam dim Dimension of the domain
+   */
   template< class F, unsigned int dim >
   class LagrangePoint
   {
@@ -26,13 +31,16 @@ namespace Dune
 
     typedef F Field;
 
+    /** \brief The vector type used for the Lagrange point position */
     typedef FieldVector< Field, dimension > Vector;
 
+    /** \brief Position of the Lagrange point */
     const Vector &point () const
     {
       return point_;
     }
 
+    /** \brief Assignment to a (sub-)entity */
     const LocalKey &localKey () const
     {
       return localKey_;
@@ -48,11 +56,13 @@ namespace Dune
     Field weight_ = {};
   };
 
-  // EmptyPointSet
-  // --------------
-
+  /** \brief A set of Lagrange points on an unspecified domain
+   *
+   * \tparam F The number type used for weights and coordinates
+   * \tparam dim The number of the domain
+   */
   template< class F, unsigned int dim >
-  class EmptyPointSet
+  class LagrangePointSet
   {
     typedef EmptyPointSet< F, dim > This;
 
@@ -66,7 +76,7 @@ namespace Dune
     typedef typename std::vector< LagrangePoint >::const_iterator iterator;
 
   protected:
-    EmptyPointSet ( const std::size_t order )
+    LagrangePointSet ( const std::size_t order )
       : order_( order )
     {}
 
@@ -109,4 +119,4 @@ namespace Dune
 
 }
 
-#endif // DUNE_LAGRANGE_EMPTYPOINTS_HH
+#endif // DUNE_LOCALFUNCTIONS_LAGRANGE_LAGRANGEPOINTSET_HH

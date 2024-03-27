@@ -4,13 +4,13 @@
 add_subdirectory(p0)
 
 install(FILES
-  emptypoints.hh
   equidistantpoints.hh
   interpolation.hh
   lagrangebasis.hh
   lagrangecoefficients.hh
   lagrangecube.hh
   lagrangelfecache.hh
+  lagrangepointset.hh
   lagrangeprism.hh
   lagrangepyramid.hh
   lagrangesimplex.hh
