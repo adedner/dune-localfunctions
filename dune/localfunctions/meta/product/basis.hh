@@ -6,6 +6,7 @@
 #ifndef DUNE_LOCALFUNCTIONS_META_PRODUCT_BASIS_HH
 #define DUNE_LOCALFUNCTIONS_META_PRODUCT_BASIS_HH
 
+#include <bits/utility.h>
 #include <type_traits>
 #include <vector>
 
@@ -42,6 +43,21 @@ private:
   // caches
   mutable std::vector<typename Traits1::RangeType> lb1Values_;
   mutable std::vector<typename Traits2::RangeType> lb2Values_;
+
+private:
+  static typename Traits1::DomainType domain1 (const Domain& x)
+  {
+    return Dune::unpackIntegerSequence([&](auto... i) {
+      return typename Traits1::DomainType{x[i]...};
+    }, std::make_index_sequence<Traits1::dimDomain>{});
+  }
+
+  static typename Traits2::DomainType domain2 (const Domain& x)
+  {
+    return Dune::unpackIntegerSequence([&](auto... i) {
+      return typename Traits2::DomainType{x[(Traits1::dimDomain+i)]...};
+    }, std::make_index_sequence<Traits2::dimDomain>{});
+  }
 
 public:
   //! Traits type to characterize the local basis
@@ -95,7 +111,7 @@ public:
           for (int k1 = 0; k1 < Traits1::dimDomain; ++k1)
             out[i*lb2Values_.size() + j][k0][k1] = lb1Jacobians[i][k0][k1] * lb2Values_[j][0];
           for (int k1 = 0; k1 < Traits2::dimDomain; ++k1)
-            out[i*lb2Values_.size() + j][k0][Traits1::domDomain + k1] = lb1Values_[i][k0] * lb2Jacobians[j][0][k1];
+            out[i*lb2Values_.size() + j][k0][Traits1::dimDomain + k1] = lb1Values_[i][k0] * lb2Jacobians[j][0][k1];
         }
       }
     }
