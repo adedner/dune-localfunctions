@@ -21,8 +21,6 @@ namespace Dune
   template< class F, unsigned int dim >
   class LagrangePoint
   {
-    typedef LagrangePoint< F, dim > This;
-
     template< class, class >
     friend class LagrangePointSetImpl;
 
@@ -64,8 +62,6 @@ namespace Dune
   template< class F, unsigned int dim >
   class LagrangePointSet
   {
-    typedef EmptyPointSet< F, dim > This;
-
   public:
     typedef F Field;
 
