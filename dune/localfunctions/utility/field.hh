@@ -11,55 +11,6 @@
 
 namespace Dune
 {
-
-  // Unity
-  // -----
-
-  /**
-   * @brief A class representing the unit of a given Field
-   *
-   * This class can be used to assign the unit element to an
-   * instance of a given Field also operators for +/- with
-   * unit element are provided. Also 1/f can be evaluated.
-   * Through specialization this class can be used also in the case that the
-   * integer 1 is not automatically converted to the unit
-   * element of the Field - the default implementation
-   **/
-  template< class Field >
-  struct Unity
-  {
-    operator Field () const
-    {
-      return Field( 1 );
-    }
-  };
-
-  template< class Field >
-  Field operator+ ( const Unity< Field > &u, const Field &f )
-  {
-    return (Field)u + f;
-  }
-
-  template< class Field >
-  Field operator- ( const Unity< Field > &u, const Field &f )
-  {
-    return (Field)u - f;
-  }
-
-  template< class Field >
-  Field operator* ( const Unity< Field > &u, const Field &f )
-  {
-    return f;
-  }
-
-  template< class Field >
-  Field operator/ ( const Unity< Field > &u, const Field &f )
-  {
-    return (Field)u / f;
-  }
-
-
-
   // Zero
   // ----
 
