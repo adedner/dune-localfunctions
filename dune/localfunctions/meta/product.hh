@@ -36,9 +36,6 @@ namespace Dune {
     using LQ1 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
     using LQ2 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
 
-    using LI1 = typename LFE1::Traits::LocalInterpolationType;
-    using LI2 = typename LFE2::Traits::LocalInterpolationType;
-
   public:
     //! types of component objects
     struct Traits {
