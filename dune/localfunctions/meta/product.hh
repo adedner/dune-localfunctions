@@ -34,7 +34,7 @@ namespace Dune {
     using LB2 = typename LFE2::Traits::LocalBasisType;
 
     using LQ1 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
-    using LQ2 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
+    using LQ2 = QuadratureRules<typename LB2::Traits::DomainFieldType, LB2::Traits::dimDomain>;
 
   public:
     //! types of component objects
@@ -70,10 +70,11 @@ namespace Dune {
       , lfe2_(std::move(lfe2))
       , lb_(lfe1_->localBasis(), lfe2_->localBasis())
       , lc_(lfe1_->localCoefficients(), lfe2_->localCoefficients(),
-          referenceElement<typename LB1::Traits::DomainFieldType,LB1::Traits::dimDomain>(lfe1_->type()))
+          referenceElement<typename LB1::Traits::DomainFieldType,LB1::Traits::dimDomain>(lfe1_->type()),
+          referenceElement<typename LB2::Traits::DomainFieldType,LB2::Traits::dimDomain>(lfe2_->type()))
       , lq_(GeometryTypes::prismaticProduct(lfe1_->type(), lfe2_->type()),
-          LQ1::rule(lfe1_->type(), lfe1_->localBasis().order()),
-          LQ2::rule(lfe2_->type(), lfe2_->localBasis().order()))
+          LQ1::rule(lfe1_->type(), lfe1_->localBasis().order()+1),
+          LQ2::rule(lfe2_->type(), lfe2_->localBasis().order()+1))
       , li_(lb_, lq_)
     {}
 

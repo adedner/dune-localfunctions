@@ -9,8 +9,10 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <map>
 #include <vector>
 
+#include <dune/geometry/type.hh>
 #include <dune/localfunctions/common/localkey.hh>
 
 namespace Dune {
@@ -19,11 +21,12 @@ class PrismaticProductLocalCoefficients
 {
 private:
   std::vector<LocalKey> keys_;
+  std::map<GeometryType, std::size_t> layout_;
 
 public:
   //! Construct a PrismaticProductLocalCoefficients object
-  template <class LC1, class LC2, class RefElem1>
-  PrismaticProductLocalCoefficients (const LC1& lc1, const LC2& lc2, const RefElem1& refElem1)
+  template <class LC1, class LC2, class RefElem1, class RefElem2>
+  PrismaticProductLocalCoefficients (const LC1& lc1, const LC2& lc2, const RefElem1& refElem1, const RefElem2& refElem2)
     : keys_(lc1.size() * lc2.size())
   {
     std::array<unsigned int, 2> maxIndex2{0u,0u};
@@ -31,6 +34,11 @@ public:
       const auto& key2 = lc2.localKey(j);
       maxIndex2[key2.codim()] = std::max(maxIndex2[key2.codim()], key2.index());
     }
+
+    // construct a product reference element
+    using ctype = std::common_type_t<typename RefElem1::ctype, typename RefElem2::ctype>;
+    constexpr int dim = RefElem1::dimension + RefElem2::dimension;
+    auto refElem = referenceElement<ctype,dim>(GeometryTypes::prismaticProduct(refElem1.type(), refElem2.type()));
 
     for (std::size_t i = 0; i < lc1.size(); ++i) {
       for (std::size_t j = 0; j < lc2.size(); ++j) {
@@ -45,6 +53,7 @@ public:
         unsigned int index = key1.index() * (maxIndex2[key2.codim()]+1) + key2.index();
 
         keys_[i * lc2.size() + j] = LocalKey(subEntity, codim, index);
+        layout_[refElem.type(subEntity,codim)]++;
       }
     }
   }
@@ -54,6 +63,16 @@ public:
 
   //! get i'th index
   const LocalKey& localKey (std::size_t i) const noexcept { return keys_[i]; }
+
+  //! A layout for the mcmgmapper
+  auto layout () const
+  {
+    return [l=layout_](GeometryType gt, int /*dim*/) -> std::size_t
+    {
+      auto it = l.find(gt);
+      return it != l.end() ? it->second : 0;
+    };
+  }
 };
 
 } // namespace Dune
