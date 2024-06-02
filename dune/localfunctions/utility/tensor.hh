@@ -9,6 +9,7 @@
 #include <ostream>
 #include <vector>
 
+#include <dune/common/ftraits.hh>
 #include <dune/common/fvector.hh>
 
 #include <dune/localfunctions/utility/field.hh>
@@ -343,6 +344,13 @@ namespace Dune
     Dune::FieldVector<ThisLFETensor,dimR> tensor_;
   };
 
+  template <class F, int dimD, unsigned int deriv>
+  struct FieldTraits< LFETensor<F,dimD,deriv> >
+  {
+    using field_type = typename LFETensor<F,dimD,deriv>::field_type;
+    using real_type = typename FieldTraits<field_type>::real_type;
+  };
+
   template <class F,int dimD,int dimR>
   struct Derivatives<F,dimD,dimR,0,DerivativeLayoutNS::value>
   {
@@ -559,6 +567,14 @@ namespace Dune
     }
   protected:
     Dune::FieldVector<ScalarDeriv,dimR> deriv_;
+  };
+
+  template <class F, int dimD, int dimR, unsigned int deriv,
+      DerivativeLayoutNS::DerivativeLayout layout>
+  struct FieldTraits< Derivatives<F,dimD,dimR,deriv,layout> >
+  {
+    using field_type = typename Derivatives<F,dimD,dimR,deriv,layout>::field_type;
+    using real_type = typename FieldTraits<field_type>::real_type;
   };
 
   // ******************************************
