@@ -6,7 +6,6 @@
 #ifndef DUNE_LOCALFUNCTIONS_META_PRODUCT_BASIS_HH
 #define DUNE_LOCALFUNCTIONS_META_PRODUCT_BASIS_HH
 
-#include <bits/utility.h>
 #include <type_traits>
 #include <vector>
 
