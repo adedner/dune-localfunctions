@@ -28,8 +28,14 @@ dune_add_library(dunelocalfunctions INTERFACE
   EXPORT_NAME LocalFunctions
   LINK_LIBRARIES Dune::Geometry)
 
+add_subdirectory(cmake/modules)
 add_subdirectory(doc)
 add_subdirectory(dune)
+
+if (HAVE_BASIX)
+  target_compile_definitions(dunelocalfunctions INTERFACE HAVE_BASIX=1)
+  target_link_libraries(dunelocalfunctions INTERFACE Basix::basix)
+endif()
 
 if( DUNE_ENABLE_PYTHONBINDINGS )
   add_subdirectory(python)
