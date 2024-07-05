@@ -61,7 +61,7 @@ namespace Dune::Impl {
   template <std::size_t dim>
   int indexing (unsigned int d)
   {
-    std::array<unsigned int,dim> orders;
+    std::array<unsigned int,dim> orders{};
     orders[d] = 1;
     return indexing(orders);
   }
