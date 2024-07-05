@@ -2,5 +2,6 @@
 # SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 
 install(FILES
-  basix.hh
+  globalbasix.hh
+  localbasix.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/localfunctions/basix)
