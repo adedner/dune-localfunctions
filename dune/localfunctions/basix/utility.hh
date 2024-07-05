@@ -5,10 +5,15 @@
 
 #if HAVE_BASIX
 
+#include <dune/geometry/type.hh>
+
+#include <basix/cell.h>
+#include <basix/indexing.h>
+
 namespace Dune::Impl {
 
   // Map the cell::type from basix to the Dune GeometryType
-  GeometryType geometryType (basix::cell::type cell_type)
+  inline GeometryType geometryType (basix::cell::type cell_type)
   {
     switch (cell_type) {
       case basix::cell::type::point:          return GeometryTypes::vertex;
@@ -24,7 +29,7 @@ namespace Dune::Impl {
   }
 
   // Map the entity index of basix into the Dune numbering
-  int entityIndex (basix::cell::type cell_type, int dim, int s)
+  inline int entityIndex (basix::cell::type cell_type, int dim, int s)
   {
     // {cell_type, dimension, entity}
     static constexpr int perm[8][4][12]{

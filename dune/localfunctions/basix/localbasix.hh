@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <basix/finite-element.h>
-#include <basix/indexing.h>
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
