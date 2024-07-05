@@ -11,10 +11,10 @@ int main(int argc, char** argv)
 {
   bool success = true;
 
-  Dune::BasixLocalFiniteElement<0, Dune::RangeClass::scalar> basixlfevertex{
-    basix::element::create_lagrange<double>(basix::cell::type::point, 0,
-    basix::element::lagrange_variant::equispaced, false)};
-  TEST_FE(basixlfevertex);
+  // Dune::BasixLocalFiniteElement<0, Dune::RangeClass::scalar> basixlfevertex{
+  //   basix::element::create_lagrange<double>(basix::cell::type::point, 0,
+  //   basix::element::lagrange_variant::equispaced, false)};
+  // TEST_FE(basixlfevertex);
 
   for (int degree = 1; degree < 2; ++degree)
   {
@@ -65,6 +65,55 @@ int main(int argc, char** argv)
     basix::element::lagrange_variant::equispaced, false)};
   basixfetri.bind(geometry);
   TEST_FE(basixfetri);
+
+
+  std::vector<std::pair<std::string, basix::cell::type>> cells{
+    {"point", basix::cell::type::point},
+    {"interval", basix::cell::type::interval},
+    {"triangle", basix::cell::type::triangle},
+    {"tetrahedron", basix::cell::type::tetrahedron},
+    {"quadrilateral", basix::cell::type::quadrilateral},
+    {"hexahedron", basix::cell::type::hexahedron},
+    {"prism", basix::cell::type::prism},
+    {"pyramid", basix::cell::type::pyramid}
+  };
+
+  std::cout << "Geometry:" << std::endl;
+  for (auto [str,type] : cells)
+  {
+    std::cout << str << ":" << std::endl;
+
+    auto [geo_data,geo_shape] = basix::cell::geometry<double>(type);
+    auto geometry = basix::element::mdspan_t<double,2>{geo_data.data(),geo_shape};
+    for (std::size_t i = 0; i < geo_shape[0]; ++i) {
+      std::cout << "[ ";
+      for (std::size_t j = 0; j < geo_shape[1]; ++j)
+        std::cout << geometry(i,j) << " ";
+      std::cout << "]" << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+
+  std::cout << "Topology:" << std::endl;
+  for (auto [str,type] : cells)
+  {
+    std::cout << str << ":" << std::endl;
+
+    auto topology = basix::cell::topology(type);
+    for (std::size_t d = 0; d < topology.size(); ++d) {
+      std::cout << "  num entities(dim=" << d << ") = " << topology[d].size() << std::endl;
+      for (std::size_t s = 0; s < topology[d].size(); ++s) {
+        std::cout << "    entity(" << s << ") = [ ";
+        for (std::size_t v = 0; v < topology[d][s].size(); ++v) {
+          std::cout << topology[d][s][v] << " ";
+        }
+        std::cout << "]" << std::endl;
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
 
   return success ? 0 : 1;
 }
