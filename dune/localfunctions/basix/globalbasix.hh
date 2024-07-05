@@ -5,6 +5,7 @@
 
 #if HAVE_BASIX
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -22,26 +23,39 @@ namespace Dune {
  * \brief Definition of a global finite-element based on the basix library.
  *
  * \tparam G  The geometry of the global element the finite-element is defined on.
+ * \tparam rangeClass  The class of the basis function range, i.e., RangeClass:scalar, vector or matrix.
  * \tparam F  A floating-point type used for the domain and range types of the basis functions.
- * \tparam dimDomain The dimension of the local domain the basis functions are defined on.
- * \tparam dimRange  The dimension of the range of the basis functions. (TODO: Needs to be clarified)
  */
-template <class G, class F, int dimDomain, int dimRange>
+template <class G, RangeClass rangeClass, class F = double>
 class BasixFiniteElement
 {
 public:
   using Geometry = G;
-  using Basix = basix::FiniteElement<F>;
-  using LocalFiniteElement = BasixLocalFiniteElement<F,dimDomain,dimRange>;
+  using FieldType = F;
+  using Basix = basix::FiniteElement<FieldType>;
+  static constexpr int dimDomain = Geometry::mydimension;
+  using LocalFiniteElement = BasixLocalFiniteElement<dimDomain,rangeClass,FieldType>;
 
   struct Basis
   {
-    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasis;
+    static constexpr std::size_t dimRange ()
+    {
+      switch (rangeClass) {
+        case RangeClass::scalar: return 1;
+        case RangeClass::vector: return Geometry::coorddimension;
+        case RangeClass::matrix: return Geometry::coorddimension * Geometry::coorddimension;
+        default: return 0;
+      }
+    }
+
+    using LocalBasis = typename LocalFiniteElement::Traits::LocalBasisType;
     using Traits = LocalBasisTraits<
-      F,dimDomain,FieldVector<F,dimDomain>, // domain
-      F,dimRange,FieldVector<F,dimRange>,   // range
-      FieldMatrix<F,dimRange,dimDomain>     // jacobian
+      F,dimDomain,FieldVector<F,dimDomain>,   // domain
+      F,dimRange(),FieldVector<F,dimRange()>, // range
+      FieldMatrix<F,dimRange(),dimDomain>     // jacobian
       >;
+
+    using DomainSpan = typename LocalBasis::DomainSpan;
 
     /// \brief Return the number of basis functions
     std::size_t size () const
@@ -59,16 +73,93 @@ public:
     void evaluateFunction(const typename Traits::DomainType& x,
                           std::vector<typename Traits::RangeType>& out) const
     {
-      lb_->evaluateFunction(x, out);
-      // TODO: might need a transformation
+      out.resize(size());
+      DomainSpan _x{x.data()};
+
+      using GlobalRange = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      GlobalRange _global{&out[0][0], out.size()};
+#else
+      globalEvaluationBuffer_.resize(out.size() * dimRange());
+      GlobalRange _global{globalEvaluationBuffer_.data(), out.size()};
+#endif
+
+      if constexpr (rangeClass == RangeClass::scalar)
+      {
+        if constexpr(std::is_same_v<typename Traits::RangeType, typename LocalBasis::Traits::RangeType>)
+          lb_->evaluateFunction(_x, _global);
+        else
+          DUNE_THROW(Dune::Exception, "Range type of global and local finite-element must match.");
+      }
+      else
+      {
+        localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange());
+        using LocalRange = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange()>>;
+        LocalRange _local{localEvaluationBuffer_.data(), out.size()};
+        lb_->evaluateFunction(_x, _local);
+
+        auto J = geometry_->jacobian(x);
+        auto K = geometry_->jacobianInverse(x);
+        auto detJ = geometry_->integrationElement(x);
+
+        using Jacobian = Std::mdspan<typename Geometry::ctype, Std::extents<std::size_t,Geometry::coorddimension,Geometry::mydimension>>;
+        Jacobian _J{&J[0][0]};
+
+        using JacobianInverse = Std::mdspan<typename Geometry::ctype, Std::extents<std::size_t,Geometry::mydimension,Geometry::coorddimension>>;
+        JacobianInverse _K{&K[0][0]};
+
+        auto map = lb_->basix().template map_fn<GlobalRange, LocalRange, Jacobian, JacobianInverse>();
+        map(_global, _local, _J, detJ, _K);
+      }
+
+#if !USE_OUT_VECTOR_FOR_MDSPAN
+      // copy the output values back into the output variable
+      for (std::size_t i = 0; i < out.size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          out[i][j] = _global(i,j);
+#endif
     }
 
     /// \brief Evaluate all shape function jacobians in a point x
     void evaluateJacobian(const typename Traits::DomainType& x,
                           std::vector<typename Traits::JacobianType>& out) const
     {
-      lb_->evaluateJacobian(x,out);
-      // TODO: might need a transformation
+      out.resize(size());
+      DomainSpan _x{x.data()};
+
+      using GlobalJacobian = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange(),dimDomain>>;
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      GlobalJacobian _global{&out[0][0][0], out.size()};
+#else
+      globalEvaluationBuffer_.resize(out.size() * dimRange() * dimDomain);
+      GlobalJacobian _global{globalEvaluationBuffer_.data(), out.size()};
+#endif
+
+      if constexpr (rangeClass == RangeClass::scalar)
+      {
+        if constexpr(std::is_same_v<typename Traits::JacobianType, typename LocalBasis::Traits::JacobianType>)
+          lb_->evaluateJacobian(_x, _global);
+        else
+          DUNE_THROW(Dune::Exception, "Jacobian type of global and local finite-element must match.");
+      }
+      else
+      {
+        localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange() * dimDomain);
+        using LocalJacobian = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange(),dimDomain>>;
+        LocalJacobian _local{localEvaluationBuffer_.data(), out.size()};
+        lb_->evaluateJacobian(_x,_local);
+
+        // TODO: Transformation needs to be implemented.
+        DUNE_THROW(Dune::NotImplemented, "Transform not yet implemented.");
+      }
+
+#if !USE_OUT_VECTOR_FOR_MDSPAN
+      // copy the output values back into the output variable
+      for (std::size_t i = 0; i < out.size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          for (std::size_t k = 0; k < dimDomain; ++k)
+            out[i][j][k] = _global(i,j,k);
+#endif
     }
 
     /// \brief Evaluate all shape function partial derivatives with given orders in a point x
@@ -76,17 +167,58 @@ public:
                   const typename Traits::DomainType& x,
                   std::vector<typename Traits::RangeType>& out) const
     {
-      lb_->partial(order,x,out);
-      // TODO: might need a transformation
+      out.resize(size());
+      DomainSpan _x{x.data()};
+
+      using GlobalPartials = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      GlobalPartials _global{&out[0][0], out.size()};
+#else
+      globalEvaluationBuffer_.resize(out.size() * dimRange());
+      GlobalPartials _global{globalEvaluationBuffer_.data(), out.size()};
+#endif
+
+      if constexpr (rangeClass == RangeClass::scalar)
+      {
+        if constexpr(std::is_same_v<typename Traits::RangeType, typename LocalBasis::Traits::RangeType>)
+          lb_->partial(order, _x, _global);
+        else
+          DUNE_THROW(Dune::Exception, "Range type of global and local finite-element must match.");
+      }
+      else
+      {
+        localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange());
+        using LocalPartials = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange()>>;
+        LocalPartials _local{localEvaluationBuffer_.data(), out.size()};
+        lb_->partial(order,_x,_local);
+
+        // TODO: Transformation needs to be implemented.
+        DUNE_THROW(Dune::NotImplemented, "Transform not yet implemented.");
+      }
+
+#if !USE_OUT_VECTOR_FOR_MDSPAN
+      // copy the output values back into the output variable
+      for (std::size_t i = 0; i < out.size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          out[i][j] = _global(i,j);
+#endif
     }
 
-    LocalBasis* lb_;
+    void bind (const Geometry& geometry)
+    {
+      geometry_ = &geometry;
+    }
+
+    const LocalBasis* lb_;
+    const Geometry* geometry_ = nullptr;
+    mutable std::vector<F> localEvaluationBuffer_ = {};
+    mutable std::vector<F> globalEvaluationBuffer_ = {};
   };
 
 
   struct Coefficients
   {
-    using LocalCoefficients = typename LocalFiniteElement::Traits::LocalCoefficients;
+    using LocalCoefficients = typename LocalFiniteElement::Traits::LocalCoefficientsType;
 
     /// \brief Return the number of local keys associated to local basis functions.
     std::size_t size () const
@@ -100,13 +232,19 @@ public:
       return lc_->localKey(i);
     }
 
-    LocalCoefficients* lc_;
+    void bind (const Geometry& geometry)
+    {
+      geometry_ = &geometry;
+    }
+
+    const LocalCoefficients* lc_;
+    const Geometry* geometry_ = nullptr;
   };
 
 
   struct Interpolation
   {
-    using LocalInterpolation = typename LocalFiniteElement::Traits::LocalInterpolation;
+    using LocalInterpolation = typename LocalFiniteElement::Traits::LocalInterpolationType;
 
     /// \brief Determine coefficients interpolating a given function `f`
     /// and store them in the output vector `out`.
@@ -116,14 +254,20 @@ public:
       li_->interpolate(f,out);
     }
 
-    LocalInterpolation* li_;
+    void bind (const Geometry& geometry)
+    {
+      geometry_ = &geometry;
+    }
+
+    const LocalInterpolation* li_;
+    const Geometry* geometry_ = nullptr;
   };
 
 
   struct Traits {
-    using Basis = typename BasixFiniteElement::Basis;
-    using Coefficients = typename BasixFiniteElement::Coefficients;
-    using Interpolation = typename BasixFiniteElement::Interpolation;
+    using LocalBasisType = typename BasixFiniteElement::Basis;
+    using LocalCoefficientsType = typename BasixFiniteElement::Coefficients;
+    using LocalInterpolationType = typename BasixFiniteElement::Interpolation;
   };
 
 public:
@@ -156,12 +300,18 @@ public:
   /// \brief Move constructor, needs to re-assign the internal pointers.
   BasixFiniteElement (const BasixFiniteElement& other)
     : BasixFiniteElement(other.lfe_)
-  {}
+  {
+    if (other.geometry_.has_value())
+      bind(*other.geometry_, other.cellInfo_);
+  }
 
   /// \brief Move constructor, needs to re-assign the internal pointers.
   BasixFiniteElement (BasixFiniteElement&& other)
     : BasixFiniteElement(std::move(other.lfe_))
-  {}
+  {
+    if (other.geometry_.has_value())
+      bind(*other.geometry_, other.cellInfo_);
+  }
 
   /// \brief Bind the global finite-element to a global element geometry and
   /// a cell permutation information.
@@ -169,38 +319,43 @@ public:
   {
     geometry_.emplace(geometry);
     cellInfo_ = cellInfo;
+
+    basis_.bind(*geometry_);
+    coefficients_.bind(*geometry_);
+    interpolation_.bind(*geometry_);
   }
 
   /// \brief Obtain a reference to the basis.
-  const Basis& basis () const { return basis_; }
+  const Basis& localBasis () const { return basis_; }
 
   /// \brief Obtain a reference to the coefficients.
-  const Coefficients& coefficients () const { return coefficients_; }
+  const Coefficients& localCoefficients () const { return coefficients_; }
 
   /// \brief Obtain a reference to the interpolation.
-  const Interpolation& interpolation () const { return  interpolation_; }
+  const Interpolation& localInterpolation () const { return  interpolation_; }
 
   /// \brief Return the dimension of the finite-element
   std::size_t size () const
   {
-    return fe_.dim();
+    return lfe_.size();
   }
 
   /// \brief Return the GeometryType the local finite-element is defined on
   GeometryType type () const
   {
-    assert(lfe_->type() == geometry_->type());
-    return lfe_->type();
+    assert(geometry_.has_value());
+    assert(lfe_.type() == geometry_->type());
+    return lfe_.type();
   }
 
   /// \brief Obtain a reference to the basix implementation
   const Basix& basix () const
   {
-    return lfe_->basix();
+    return lfe_.basix();
   }
 
 private:
-  const LFE* lfe_ = nullptr;
+  LocalFiniteElement lfe_;
   std::optional<Geometry> geometry_ = std::nullopt;
   std::uint32_t cellInfo_ = 0;
 

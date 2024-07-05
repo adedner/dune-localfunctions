@@ -66,27 +66,50 @@ namespace Impl {
 
 } // end namespace Impl
 
+/// \brief Type of the basis function range
+enum class RangeClass
+{
+  scalar = 0,
+  vector = 1,
+  matrix = 2,
+};
+
 
 /**
  * \brief Definition of a local finite-element based on the basix library.
  *
- * \tparam F  A floating-point type used for the domain and range types of the basis functions.
  * \tparam dimDomain The dimension of the local domain the basis functions are defined on.
- * \tparam dimRange  The dimension of the range of the basis functions. (TODO: Needs to be clarified)
+ * \tparam rangeClass  The class of the basis function range, i.e., RangeClass:scalar, vector or matrix.
+ * \tparam F  A floating-point type used for the domain and range types of the basis functions.
  */
-template <class F, int dimDomain, int dimRange>
+template <int dimDomain, RangeClass rangeClass, class F = double>
 class BasixLocalFiniteElement
 {
 public:
-  using Basix = basix::FiniteElement<F>;
+  using FieldType = F;
+  using Basix = basix::FiniteElement<FieldType>;
 
   struct LocalBasis
   {
+    static constexpr std::size_t dimRange ()
+    {
+      switch (rangeClass) {
+        case RangeClass::scalar: return 1;
+        case RangeClass::vector: return dimDomain;
+        case RangeClass::matrix: return dimDomain * dimDomain;
+        default: return 0;
+      }
+    }
+
     using Traits = LocalBasisTraits<
-      F,dimDomain,FieldVector<F,dimDomain>, // domain
-      F,dimRange,FieldVector<F,dimRange>,   // range
-      FieldMatrix<F,dimRange,dimDomain>     // jacobian
+      F,dimDomain,FieldVector<F,dimDomain>,   // domain
+      F,dimRange(),FieldVector<F,dimRange()>, // range
+      FieldMatrix<F,dimRange(),dimDomain>     // jacobian
       >;
+
+    using DomainSpan = Std::mdspan<const F, Std::extents<std::size_t,dimDomain>>;
+    using RangeSpan = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
+    using JacobianSpan = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange(),dimDomain>>;
 
     /// \brief Return the number of basis functions
     std::size_t size () const
@@ -97,48 +120,113 @@ public:
     /// \brief Degree of the minimal polynomial space all basis functions are embedded
     std::size_t order () const
     {
-      // TODO: Is this the right degre, or to we need the embedded_subdegree()?
+      // TODO: Is this the right degree, or to we need the embedded_subdegree()?
       return basix_->embedded_superdegree();
     }
 
     /// \brief Evaluate all shape functions in a point x
-    void evaluateFunction(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::RangeType>& out) const
+    void evaluateFunction (DomainSpan x, RangeSpan out) const
     {
-      // TODO: Could we write directly into the out parameter?
-      // Unfortunately it is not a flat storage but a vector of vectors.
+      // Add another dimension to the DomainSpan:
+      // - number of points (== 1)
+      using TabulateX = basix::element::mdspan_t<const F,2>;
+      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
 
-      auto [tab_data,shape] = basix_->tabulate(0, basix::element::mdspan_t<const F, 2>{x.data(), 1, dimDomain});
-      basix::element::mdspan_t<const F, 4> tab(tab_data.data(), shape);
-
-      assert(shape[0] == 1);
-      assert(shape[1] == 1);
-      assert(shape[2] == size());
-      assert(shape[3] == dimRange);
-
-      out.resize(size());
-      for (std::size_t i = 0; i < size(); ++i)
-        for (std::size_t j = 0; j < dimRange; ++j)
-          out[i][j] = tab(0,0,i,j);
+      // Add two more dimensions to the RangeSpan:
+      // 1. number of derivative components (== 1, since only derivative-order 0)
+      // 2. number of points (== 1)
+      using TabulateOut = basix::element::mdspan_t<F,4>;
+      TabulateOut _out{out.data_handle(), std::array<std::size_t,4>{1,1,out.extent(0),out.extent(1)}};
+      basix_->tabulate(0, _x, _out);
     }
 
+    void evaluateFunction (const typename Traits::DomainType& x,
+                           std::vector<typename Traits::RangeType>& out) const
+    {
+      out.resize(size());
+      DomainSpan _x{x.data()};
 
-    /// \brief Evaluate all shape function jacobians in a point x
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      RangeSpan _out{&out[0][0], size()};
+      evaluateFunction(_x,_out);
+#else
+      evaluationBuffer_.resize(size() * dimRange());
+      RangeSpan _out{evaluationBuffer_.data(), size()};
+      evaluateFunction(_x,_out);
+
+      for (std::size_t i = 0; i < size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          out[i][j] = _out(i,j);
+#endif
+    }
+
+    /// \brief Evaluate all shape function Jacobians in a point x
+    void evaluateJacobian (DomainSpan x, JacobianSpan out) const
+    {
+      // Add another dimension to the DomainSpan:
+      // - number of points (== 1)
+      using TabulateX = basix::element::mdspan_t<const F,2>;
+      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
+
+      // Define an extended JacobianSpan, since we need to store also the function evaluation
+      // 1. number of derivative components (== dimDomain+1, since function evaluation and all first-order derivatives are computed)
+      // 2. number of points (== 1)
+      using TabulateOut = basix::element::mdspan_t<F,4>;
+      evaluationBuffer_.resize((dimDomain+1) * size() * dimRange());
+      TabulateOut _out{evaluationBuffer_.data(), std::array<std::size_t,4>{dimDomain+1,1,size(),dimRange()}};
+      basix_->tabulate(1, _x, _out);
+
+      for (std::size_t i = 0; i < size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          for (std::size_t k = 0; k < dimDomain; ++k)
+            out(i,j,k) = _out(k+1,0,i,j);
+    }
+
+    /// \brief Evaluate all shape function Jacobians in a point x
     void evaluateJacobian(const typename Traits::DomainType& x,
                           std::vector<typename Traits::JacobianType>& out) const
     {
-      auto [tab_data,shape] = basix_->tabulate(1, basix::element::mdspan_t<const F, 2>{x.data(), 1, dimDomain});
-      basix::element::mdspan_t<const F, 4> tab(tab_data.data(), shape);
-
-      assert(shape[1] == 1);
-      assert(shape[2] == size());
-      assert(shape[3] == dimRange);
-
       out.resize(size());
+      DomainSpan _x{x.data()};
+
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      JacobianSpan _out{&out[0][0][0], size()};
+      evaluateJacobian(_x, _out);
+#else
+      thread_local std::vector<F> jacobianEvaluationBuffer;
+      jacobianEvaluationBuffer.resize(size() * dimRange() * dimDomain);
+      JacobianSpan _out{jacobianEvaluationBuffer.data(), size()};
+      evaluateJacobian(_x, _out);
+
       for (std::size_t i = 0; i < size(); ++i)
-        for (std::size_t j = 0; j < dimRange; ++j)
+        for (std::size_t j = 0; j < dimRange(); ++j)
           for (std::size_t k = 0; k < dimDomain; ++k)
-            out[i][j][k] = tab(1 + k,0,i,j);
+            out[i][j][k] = _out(i,j,k);
+#endif
+    }
+
+    /// \brief Evaluate all shape function partial derivatives with given orders in a point x
+    void partial (const std::array<unsigned int,dimDomain>& order,
+                  DomainSpan x, RangeSpan out) const
+    {
+      // Add another dimension to the DomainSpan:
+      // - number of points (== 1)
+      using TabulateX = basix::element::mdspan_t<const F,2>;
+      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
+
+      int totalOrder = std::accumulate(order.begin(), order.end(), 0);
+      auto shape = basix_->tabulate_shape(totalOrder, 1);
+
+      // Add two more dimensions to the RangeSpan:
+      // 1. number of derivative components (== 1, since only derivative-order 0)
+      // 2. number of points (== 1)
+      using TabulateOut = basix::element::mdspan_t<F,4>;
+      TabulateOut _out{out.data_handle(),std::array<std::size_t,4>{shape[0],1,out.extent(0),out.extent(1)}};
+      basix_->tabulate(totalOrder, _x, _out);
+
+      for (std::size_t i = 0; i < size(); ++i)
+        for (std::size_t j = 0; j < dimRange(); ++j)
+          out(i,j) = _out(Impl::indexing(order),0,i,j);
     }
 
     /// \brief Evaluate all shape function partial derivatives with given orders in a point x
@@ -146,22 +234,28 @@ public:
                   const typename Traits::DomainType& x,
                   std::vector<typename Traits::RangeType>& out) const
     {
-      int totalOrder = std::accumulate(order.begin(), order.end(), 0);
-
-      auto [tab_data,shape] = basix_->tabulate(totalOrder, basix::element::mdspan_t<const F, 2>{x.data(), 1, dimDomain});
-      basix::element::mdspan_t<const F, 4> tab(tab_data.data(), shape);
-
-      assert(shape[1] == 1);
-      assert(shape[2] == size());
-      assert(shape[3] == dimRange);
-
       out.resize(size());
+      DomainSpan _x{x.data()};
+
+#if USE_OUT_VECTOR_FOR_MDSPAN
+      RangeSpan _out{&out[0][0], size()};
+      partial(order, _x, _out);
+#else
+      thread_local std::vector<F> partialEvaluationBuffer;
+      partialEvaluationBuffer.resize(size() * dimRange());
+      RangeSpan _out{partialEvaluationBuffer.data(), size()};
+      partial(order, _x, _out);
+
       for (std::size_t i = 0; i < size(); ++i)
-        for (std::size_t j = 0; j < dimRange; ++j)
-          out[i][j] = tab(Impl::indexing(order),0,i,j);
+        for (std::size_t j = 0; j < dimRange(); ++j)
+            out[i][j] = _out(i,j);
+#endif
     }
 
+    const Basix& basix () const { return *basix_; }
+
     Basix* basix_;
+    mutable std::vector<F> evaluationBuffer_ = {};
   };
 
 
@@ -178,7 +272,7 @@ public:
           for (std::size_t i = 0; i < entity_dofs[d][s].size(); ++i)
             localKeys_[entity_dofs[d][s][i]] = LocalKey(s,Impl::basix2dune(basix_->cell_type()).dim()-d, i);
             // TODO: We might need an index mapping from the basix
-            // reference element numberting to the Dune numbering
+            // reference element numbering to the Dune numbering
             // in the parameter `s`.
     }
 
@@ -214,7 +308,7 @@ public:
       // TODO: What is the proper type for the values-vector? It depends on the type of
       // the interpolation matrix.
       Std::mdarray<F,Std::dextents<int,1>> values{points.extent(0)};
-      for (std::size_t i = 0; i < points.extent(0); ++i)
+      for (int i = 0; i < points.extent(0); ++i)
       {
         FieldVector<F,dimDomain> x;
         for (int j = 0; j < dimDomain; ++j)
