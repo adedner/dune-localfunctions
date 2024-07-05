@@ -16,55 +16,12 @@
 #include <dune/common/std/mdarray.hh>
 #include <dune/common/std/mdspan.hh>
 #include <dune/geometry/type.hh>
+#include <dune/localfunctions/basix/utility.hh>
 #include <dune/localfunctions/common/localbasis.hh>
 #include <dune/localfunctions/common/localkey.hh>
 #include <dune/localfunctions/common/localfiniteelementtraits.hh>
 
 namespace Dune {
-namespace Impl {
-
-  // Map the cell::type from basix to the Dune GeometryType
-  GeometryType basix2dune (basix::cell::type cell_type)
-  {
-    switch (cell_type) {
-      case basix::cell::type::point:          return GeometryTypes::vertex;
-      case basix::cell::type::interval:       return GeometryTypes::line;
-      case basix::cell::type::triangle:       return GeometryTypes::triangle;
-      case basix::cell::type::tetrahedron:    return GeometryTypes::tetrahedron;
-      case basix::cell::type::quadrilateral:  return GeometryTypes::quadrilateral;
-      case basix::cell::type::hexahedron:     return GeometryTypes::hexahedron;
-      case basix::cell::type::prism:          return GeometryTypes::prism;
-      case basix::cell::type::pyramid:        return GeometryTypes::pyramid;
-      default: return GeometryTypes::none(0);
-    }
-  }
-
-  // Map the derivative-order tuple from the partial() method to the
-  // derivative index used in basix
-  template <std::size_t dim>
-  int indexing (const std::array<unsigned int,dim>& orders)
-  {
-    if constexpr (dim == 1)
-      return basix::indexing::idx(orders[0]);
-    else if constexpr (dim == 2)
-      return basix::indexing::idx(orders[0],orders[1]);
-    else if constexpr (dim == 3)
-      return basix::indexing::idx(orders[0],orders[1],orders[2]);
-    else
-      return 0;
-  }
-
-  // Map the first order derivative in direction d to the derivative index
-  // used in basix
-  template <std::size_t dim>
-  int indexing (unsigned int d)
-  {
-    std::array<unsigned int,dim> orders;
-    orders[d] = 1;
-    return indexing(orders);
-  }
-
-} // end namespace Impl
 
 /// \brief Type of the basis function range
 enum class RangeClass
@@ -259,13 +216,14 @@ public:
     {
       // map from entity_dofs into LocalKeys
       auto& entity_dofs = basix_->entity_dofs();
+      int dimension = Impl::geometryType(basix_->cell_type()).dim();
       for (std::size_t d = 0; d < entity_dofs.size(); ++d)
         for (std::size_t s = 0; s < entity_dofs[d].size(); ++s)
-          for (std::size_t i = 0; i < entity_dofs[d][s].size(); ++i)
-            localKeys_[entity_dofs[d][s][i]] = LocalKey(s,Impl::basix2dune(basix_->cell_type()).dim()-d, i);
-            // TODO: We might need an index mapping from the basix
-            // reference element numbering to the Dune numbering
-            // in the parameter `s`.
+          for (std::size_t i = 0; i < entity_dofs[d][s].size(); ++i) {
+            int _s = Impl::entityIndex(basix_->cell_type(),d,s);
+            int _c = dimension-d;
+            localKeys_[entity_dofs[d][s][i]] = LocalKey(_s, _c, i);
+          }
     }
 
     /// \brief Return the number of local keys associated to local basis functions.
@@ -377,7 +335,7 @@ public:
   /// \brief Return the GeometryType the local finite-element is defined on
   GeometryType type () const
   {
-    return Impl::basix2dune(basix_.cell_type());
+    return Impl::geometryType(basix_.cell_type());
   }
 
   /// \brief Obtain a reference to the basix implementation

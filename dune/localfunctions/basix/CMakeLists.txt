@@ -4,4 +4,5 @@
 install(FILES
   globalbasix.hh
   localbasix.hh
+  utility.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/localfunctions/basix)
