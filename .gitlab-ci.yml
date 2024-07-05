@@ -14,11 +14,6 @@ before_script:
   - . /duneci/bin/duneci-init-job
   - duneci-install-module https://gitlab.dune-project.org/core/dune-common.git
   - duneci-install-module https://gitlab.dune-project.org/core/dune-geometry.git
-  - mkdir /duneci/libs/ && git clone https://github.com/FEniCS/basix.git /duneci/libs/basix_source
-  - cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/duneci/libs/basix -B /duneci/libs/basix_build -S /duneci/libs/basix_source/cpp && cmake --build /duneci/libs/basix_build --target install
-
-variables:
-  DUNECI_CMAKE_FLAGS: '-DBasix_DIR=/duneci/libs/basix/lib/cmake/basix'
 
 # Check for spelling mistakes in text
 code-spelling-check:
