@@ -107,8 +107,10 @@ public:
       FieldMatrix<F,dimRange(),dimDomain>     // jacobian
       >;
 
-    using DomainSpan = Std::mdspan<const F, Std::extents<std::size_t,dimDomain>>;
+    using Domain = typename Traits::DomainType;
+    using Range = typename Traits::RangeType;
     using RangeSpan = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
+    using Jacobian = typename Traits::JacobianType;
     using JacobianSpan = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange(),dimDomain>>;
 
     /// \brief Return the number of basis functions
@@ -125,12 +127,10 @@ public:
     }
 
     /// \brief Evaluate all shape functions in a point x
-    void evaluateFunction (DomainSpan x, RangeSpan out) const
+    void evaluateFunction (const Domain& x, RangeSpan out) const
     {
-      // Add another dimension to the DomainSpan:
-      // - number of points (== 1)
       using TabulateX = basix::element::mdspan_t<const F,2>;
-      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
+      TabulateX _x{x.data(), std::array<std::size_t,2>{1,dimDomain}};
 
       // Add two more dimensions to the RangeSpan:
       // 1. number of derivative components (== 1, since only derivative-order 0)
@@ -140,19 +140,17 @@ public:
       basix_->tabulate(0, _x, _out);
     }
 
-    void evaluateFunction (const typename Traits::DomainType& x,
-                           std::vector<typename Traits::RangeType>& out) const
+    void evaluateFunction (const Domain& x, std::vector<Range>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
 #if USE_OUT_VECTOR_FOR_MDSPAN
       RangeSpan _out{&out[0][0], size()};
-      evaluateFunction(_x,_out);
+      evaluateFunction(x,_out);
 #else
       evaluationBuffer_.resize(size() * dimRange());
       RangeSpan _out{evaluationBuffer_.data(), size()};
-      evaluateFunction(_x,_out);
+      evaluateFunction(x,_out);
 
       for (std::size_t i = 0; i < size(); ++i)
         for (std::size_t j = 0; j < dimRange(); ++j)
@@ -161,12 +159,10 @@ public:
     }
 
     /// \brief Evaluate all shape function Jacobians in a point x
-    void evaluateJacobian (DomainSpan x, JacobianSpan out) const
+    void evaluateJacobian (const Domain& x, JacobianSpan out) const
     {
-      // Add another dimension to the DomainSpan:
-      // - number of points (== 1)
       using TabulateX = basix::element::mdspan_t<const F,2>;
-      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
+      TabulateX _x{x.data(), std::array<std::size_t,2>{1,dimDomain}};
 
       // Define an extended JacobianSpan, since we need to store also the function evaluation
       // 1. number of derivative components (== dimDomain+1, since function evaluation and all first-order derivatives are computed)
@@ -183,20 +179,18 @@ public:
     }
 
     /// \brief Evaluate all shape function Jacobians in a point x
-    void evaluateJacobian(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::JacobianType>& out) const
+    void evaluateJacobian (const Domain& x, std::vector<Jacobian>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
 #if USE_OUT_VECTOR_FOR_MDSPAN
       JacobianSpan _out{&out[0][0][0], size()};
-      evaluateJacobian(_x, _out);
+      evaluateJacobian(x, _out);
 #else
       thread_local std::vector<F> jacobianEvaluationBuffer;
       jacobianEvaluationBuffer.resize(size() * dimRange() * dimDomain);
       JacobianSpan _out{jacobianEvaluationBuffer.data(), size()};
-      evaluateJacobian(_x, _out);
+      evaluateJacobian(x, _out);
 
       for (std::size_t i = 0; i < size(); ++i)
         for (std::size_t j = 0; j < dimRange(); ++j)
@@ -207,12 +201,12 @@ public:
 
     /// \brief Evaluate all shape function partial derivatives with given orders in a point x
     void partial (const std::array<unsigned int,dimDomain>& order,
-                  DomainSpan x, RangeSpan out) const
+                  const Domain& x, RangeSpan out) const
     {
       // Add another dimension to the DomainSpan:
       // - number of points (== 1)
       using TabulateX = basix::element::mdspan_t<const F,2>;
-      TabulateX _x{x.data_handle(), std::array<std::size_t,2>{1,x.extent(0)}};
+      TabulateX _x{x.data(), std::array<std::size_t,2>{1,dimDomain}};
 
       int totalOrder = std::accumulate(order.begin(), order.end(), 0);
       auto shape = basix_->tabulate_shape(totalOrder, 1);
@@ -231,20 +225,18 @@ public:
 
     /// \brief Evaluate all shape function partial derivatives with given orders in a point x
     void partial(const std::array<unsigned int,dimDomain>& order,
-                  const typename Traits::DomainType& x,
-                  std::vector<typename Traits::RangeType>& out) const
+                  const Domain& x, std::vector<Range>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
 #if USE_OUT_VECTOR_FOR_MDSPAN
       RangeSpan _out{&out[0][0], size()};
-      partial(order, _x, _out);
+      partial(order, x, _out);
 #else
       thread_local std::vector<F> partialEvaluationBuffer;
       partialEvaluationBuffer.resize(size() * dimRange());
       RangeSpan _out{partialEvaluationBuffer.data(), size()};
-      partial(order, _x, _out);
+      partial(order, x, _out);
 
       for (std::size_t i = 0; i < size(); ++i)
         for (std::size_t j = 0; j < dimRange(); ++j)

@@ -55,7 +55,9 @@ public:
       FieldMatrix<F,dimRange(),dimDomain>     // jacobian
       >;
 
-    using DomainSpan = typename LocalBasis::DomainSpan;
+    using Domain = typename Traits::DomainType;
+    using Range = typename Traits::RangeType;
+    using Jacobian = typename Traits::JacobianType;
 
     /// \brief Return the number of basis functions
     std::size_t size () const
@@ -70,11 +72,9 @@ public:
     }
 
     /// \brief Evaluate all shape functions in a point x
-    void evaluateFunction(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::RangeType>& out) const
+    void evaluateFunction (const Domain& x, std::vector<Range>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
       using GlobalRange = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
 #if USE_OUT_VECTOR_FOR_MDSPAN
@@ -86,8 +86,8 @@ public:
 
       if constexpr (rangeClass == RangeClass::scalar)
       {
-        if constexpr(std::is_same_v<typename Traits::RangeType, typename LocalBasis::Traits::RangeType>)
-          lb_->evaluateFunction(_x, _global);
+        if constexpr(std::is_same_v<Range, typename LocalBasis::Range>)
+          lb_->evaluateFunction(x, _global);
         else
           DUNE_THROW(Dune::Exception, "Range type of global and local finite-element must match.");
       }
@@ -96,7 +96,7 @@ public:
         localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange());
         using LocalRange = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange()>>;
         LocalRange _local{localEvaluationBuffer_.data(), out.size()};
-        lb_->evaluateFunction(_x, _local);
+        lb_->evaluateFunction(x, _local);
 
         auto J = geometry_->jacobian(x);
         auto K = geometry_->jacobianInverse(x);
@@ -121,11 +121,9 @@ public:
     }
 
     /// \brief Evaluate all shape function jacobians in a point x
-    void evaluateJacobian(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::JacobianType>& out) const
+    void evaluateJacobian (const Domain& x, std::vector<Jacobian>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
       using GlobalJacobian = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange(),dimDomain>>;
 #if USE_OUT_VECTOR_FOR_MDSPAN
@@ -137,8 +135,8 @@ public:
 
       if constexpr (rangeClass == RangeClass::scalar)
       {
-        if constexpr(std::is_same_v<typename Traits::JacobianType, typename LocalBasis::Traits::JacobianType>)
-          lb_->evaluateJacobian(_x, _global);
+        if constexpr(std::is_same_v<Jacobian, typename LocalBasis::Jacobian>)
+          lb_->evaluateJacobian(x, _global);
         else
           DUNE_THROW(Dune::Exception, "Jacobian type of global and local finite-element must match.");
       }
@@ -147,7 +145,7 @@ public:
         localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange() * dimDomain);
         using LocalJacobian = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange(),dimDomain>>;
         LocalJacobian _local{localEvaluationBuffer_.data(), out.size()};
-        lb_->evaluateJacobian(_x,_local);
+        lb_->evaluateJacobian(x, _local);
 
         // TODO: Transformation needs to be implemented.
         DUNE_THROW(Dune::NotImplemented, "Transform not yet implemented.");
@@ -163,12 +161,10 @@ public:
     }
 
     /// \brief Evaluate all shape function partial derivatives with given orders in a point x
-    void partial(const std::array<unsigned int,dimDomain>& order,
-                  const typename Traits::DomainType& x,
-                  std::vector<typename Traits::RangeType>& out) const
+    void partial (const std::array<unsigned int,dimDomain>& order,
+                  const Domain& x, std::vector<Range>& out) const
     {
       out.resize(size());
-      DomainSpan _x{x.data()};
 
       using GlobalPartials = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,dimRange()>>;
 #if USE_OUT_VECTOR_FOR_MDSPAN
@@ -180,8 +176,8 @@ public:
 
       if constexpr (rangeClass == RangeClass::scalar)
       {
-        if constexpr(std::is_same_v<typename Traits::RangeType, typename LocalBasis::Traits::RangeType>)
-          lb_->partial(order, _x, _global);
+        if constexpr(std::is_same_v<Range, typename LocalBasis::Range>)
+          lb_->partial(order, x, _global);
         else
           DUNE_THROW(Dune::Exception, "Range type of global and local finite-element must match.");
       }
@@ -190,7 +186,7 @@ public:
         localEvaluationBuffer_.resize(out.size() * LocalBasis::dimRange());
         using LocalPartials = Std::mdspan<F, Std::extents<std::size_t,Std::dynamic_extent,LocalBasis::dimRange()>>;
         LocalPartials _local{localEvaluationBuffer_.data(), out.size()};
-        lb_->partial(order,_x,_local);
+        lb_->partial(order, x, _local);
 
         // TODO: Transformation needs to be implemented.
         DUNE_THROW(Dune::NotImplemented, "Transform not yet implemented.");
