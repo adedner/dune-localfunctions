@@ -165,7 +165,7 @@ public:
       TabulateX _x{x.data(), std::array<std::size_t,2>{1,dimDomain}};
 
       // Define an extended JacobianSpan, since we need to store also the function evaluation
-      // 1. number of derivative components (== dimDomain+1, since function evaluation and all first-order derivatives are computed)
+      // 1. number of derivative components (== dimDomain+1)
       // 2. number of points (== 1)
       using TabulateOut = basix::element::mdspan_t<F,4>;
       evaluationBuffer_.resize((dimDomain+1) * size() * dimRange());
@@ -212,7 +212,7 @@ public:
       auto shape = basix_->tabulate_shape(totalOrder, 1);
 
       // Add two more dimensions to the RangeSpan:
-      // 1. number of derivative components (== 1, since only derivative-order 0)
+      // 1. number of derivative components (== 1)
       // 2. number of points (== 1)
       using TabulateOut = basix::element::mdspan_t<F,4>;
       TabulateOut _out{out.data_handle(),std::array<std::size_t,4>{shape[0],1,out.extent(0),out.extent(1)}};
