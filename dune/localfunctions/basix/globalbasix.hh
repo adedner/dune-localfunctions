@@ -11,6 +11,7 @@
 
 #include <dune/common/fvector.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/shared_ptr.hh>
 #include <dune/geometry/type.hh>
 #include <dune/localfunctions/basix/localbasix.hh>
 #include <dune/localfunctions/common/localbasis.hh>
@@ -261,36 +262,41 @@ public:
 
 
   struct Traits {
-    using LocalBasisType = typename BasixFiniteElement::Basis;
-    using LocalCoefficientsType = typename BasixFiniteElement::Coefficients;
-    using LocalInterpolationType = typename BasixFiniteElement::Interpolation;
+    using Basis = typename BasixFiniteElement::Basis;
+    using LocalBasisType = Basis;
+    using Coefficients = typename BasixFiniteElement::Coefficients;
+    using LocalCoefficientsType = Coefficients;
+    using Interpolation = typename BasixFiniteElement::Interpolation;
+    using LocalInterpolationType = Interpolation;
   };
 
 public:
   /// \brief Construct a global finite-element from an associated local finite-element
+  explicit BasixFiniteElement (std::shared_ptr<LocalFiniteElement> lfe)
+    : lfe_(std::move(lfe))
+    , basis_{&lfe_->localBasis()}
+    , coefficients_{&lfe_->localCoefficients()}
+    , interpolation_{&lfe_->localInterpolation()}
+  {}
+
+  /// \brief Construct a global finite-element from an associated local finite-element
   explicit BasixFiniteElement (const LocalFiniteElement& lfe)
-    : lfe_(lfe)
-    , basis_{&lfe_.localBasis()}
-    , coefficients_{&lfe_.localCoefficients()}
-    , interpolation_{&lfe_.localInterpolation()}
+    : BasixFiniteElement(stackobject_to_shared_ptr(lfe))
   {}
 
   /// \brief Construct a global finite-element from an associated local finite-element
   explicit BasixFiniteElement (LocalFiniteElement&& lfe)
-    : lfe_(std::move(lfe))
-    , basis_{&lfe_.localBasis()}
-    , coefficients_{&lfe_.localCoefficients()}
-    , interpolation_{&lfe_.localInterpolation()}
+    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(std::move(lfe)))
   {}
 
   /// \brief Construct the local finite-element from the basix library
   explicit BasixFiniteElement (const Basix& basix)
-    : BasixFiniteElement(LocalFiniteElement(basix))
+    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(stackobject_to_shared_ptr(basix)))
   {}
 
   /// \brief Construct the local finite-element from the basix library.
   explicit BasixFiniteElement (Basix&& basix)
-    : BasixFiniteElement(LocalFiniteElement(std::move(basix)))
+    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(std::make_shared<Basix>(std::move(basix))))
   {}
 
   /// \brief Move constructor, needs to re-assign the internal pointers.
@@ -323,25 +329,33 @@ public:
 
   /// \brief Obtain a reference to the basis.
   const Basis& localBasis () const { return basis_; }
+  const Basis& basis () const { return basis_; }
 
   /// \brief Obtain a reference to the coefficients.
   const Coefficients& localCoefficients () const { return coefficients_; }
+  const Coefficients& coefficients () const { return coefficients_; }
 
   /// \brief Obtain a reference to the interpolation.
   const Interpolation& localInterpolation () const { return  interpolation_; }
+  const Interpolation& interpolation () const { return  interpolation_; }
 
   /// \brief Return the dimension of the finite-element
   std::size_t size () const
   {
-    return lfe_.size();
+    return lfe_->size();
   }
 
   /// \brief Return the GeometryType the local finite-element is defined on
   GeometryType type () const
   {
     assert(geometry_.has_value());
-    assert(lfe_.type() == geometry_->type());
-    return lfe_.type();
+    assert(lfe_->type() == geometry_->type());
+    return lfe_->type();
+  }
+
+  std::uint32_t cellInfo () const
+  {
+    return cellInfo_;
   }
 
   /// \brief Obtain a reference to the basix implementation
@@ -351,7 +365,7 @@ public:
   }
 
 private:
-  LocalFiniteElement lfe_;
+  std::shared_ptr<LocalFiniteElement> lfe_;
   std::optional<Geometry> geometry_ = std::nullopt;
   std::uint32_t cellInfo_ = 0;
 

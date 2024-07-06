@@ -33,7 +33,7 @@ add_subdirectory(doc)
 add_subdirectory(dune)
 
 if (HAVE_BASIX)
-  target_compile_definitions(dunelocalfunctions INTERFACE HAVE_BASIX=1)
+  target_compile_definitions(dunelocalfunctions INTERFACE HAVE_BASIX=1 MDSPAN_USE_PAREN_OPERATOR=1)
   target_link_libraries(dunelocalfunctions INTERFACE Basix::basix)
 endif()
 

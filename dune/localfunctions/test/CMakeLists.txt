@@ -4,7 +4,6 @@
 dune_add_test(SOURCES basixtest.cc
   LINK_LIBRARIES dunelocalfunctions
   CMAKE_GUARD HAVE_BASIX)
-target_compile_definitions(basixtest PRIVATE USE_OUT_VECTOR_FOR_MDSPAN=1)
 
 dune_add_test(SOURCES bdfmelementtest.cc)
 

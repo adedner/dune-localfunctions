@@ -12,6 +12,8 @@
 
 namespace Dune::Impl {
 
+  static inline constexpr int number_of_cell_types = 8;
+
   // Map the cell::type from basix to the Dune GeometryType
   inline GeometryType geometryType (basix::cell::type cell_type)
   {
@@ -28,16 +30,32 @@ namespace Dune::Impl {
     }
   }
 
+  // Map the Dune::GeometryType to cell::type from basix
+  inline basix::cell::type cellType (GeometryType type)
+  {
+    switch (type.toId()) {
+      case GeometryTypes::vertex.toId():        return basix::cell::type::point;
+      case GeometryTypes::line.toId():          return basix::cell::type::interval;
+      case GeometryTypes::triangle.toId():      return basix::cell::type::triangle;
+      case GeometryTypes::tetrahedron.toId():   return basix::cell::type::tetrahedron;
+      case GeometryTypes::quadrilateral.toId(): return basix::cell::type::quadrilateral;
+      case GeometryTypes::hexahedron.toId():    return basix::cell::type::hexahedron;
+      case GeometryTypes::prism.toId():         return basix::cell::type::prism;
+      case GeometryTypes::pyramid.toId():       return basix::cell::type::pyramid;
+      default: return basix::cell::type{};
+    }
+  }
+
   // Map the entity index of basix into the Dune numbering
   inline int entityIndex (basix::cell::type cell_type, int dim, int s)
   {
     // {cell_type, dimension, entity}
-    static constexpr int perm[8][4][12]{
+    static constexpr int perm[number_of_cell_types][4][12]{
       { {0} }, // point
       { {0,1}, {0} }, // interval
       { {0,1,2}, {2,1,0}, {0} }, // triangle
       { {0,1,2,3}, {5,4,2,3,1,0}, {3,2,1,0}, {0} }, // tetrahedron
-      { {0,1,2,3}, {2,0,2,3}, {0} }, // quadrilateral
+      { {0,1,2,3}, {2,0,1,3}, {0} }, // quadrilateral
       { {0,1,2,3,4,5,6,7}, {6,4,0,5,1,7,2,3,10,8,9,11}, {4,2,0,1,3,5}, {0} }, // hexahedron
       { {0,1,2,3,4,5}, {3,4,0,5,1,2,6,7,8}, {3,0,1,2,4}, {0} }, // prism
       { {0,1,2,3,4}, {2,0,4,1,5,3,6,7}, {0,3,1,2,4}, {0} } // pyramid

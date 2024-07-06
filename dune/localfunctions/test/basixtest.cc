@@ -16,7 +16,7 @@ int main(int argc, char** argv)
   //   basix::element::lagrange_variant::equispaced, false)};
   // TEST_FE(basixlfevertex);
 
-  for (int degree = 1; degree < 2; ++degree)
+  for (int degree = 1; degree < 5; ++degree)
   {
     std::cout << "degree " << degree << std::endl;
     Dune::BasixLocalFiniteElement<1, Dune::RangeClass::scalar> basixlfeline{
