@@ -1,11 +1,41 @@
 // SPDX-FileCopyrightText: Copyright © DUNE Project contributors, see file LICENSE.md in module root
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
+#include <dune/common/test/testsuite.hh>
 #include <dune/localfunctions/basix/globalbasix.hh>
 #include <dune/localfunctions/basix/localbasix.hh>
 #include <dune/localfunctions/test/test-localfe.hh>
 
 #include <basix/finite-element.h>
 #include <basix/e-lagrange.h>
+
+int testUtility ()
+{
+  using namespace Dune;
+  Dune::TestSuite test;
+
+  test.check(Impl::geometryType(::basix::cell::type::point) == GeometryTypes::vertex);
+  test.check(Impl::geometryType(::basix::cell::type::interval) == GeometryTypes::line);
+  test.check(Impl::geometryType(::basix::cell::type::triangle) == GeometryTypes::triangle);
+  test.check(Impl::geometryType(::basix::cell::type::quadrilateral) == GeometryTypes::quadrilateral);
+  test.check(Impl::geometryType(::basix::cell::type::tetrahedron) == GeometryTypes::tetrahedron);
+  test.check(Impl::geometryType(::basix::cell::type::hexahedron) == GeometryTypes::hexahedron);
+  test.check(Impl::geometryType(::basix::cell::type::prism) == GeometryTypes::prism);
+  test.check(Impl::geometryType(::basix::cell::type::pyramid) == GeometryTypes::pyramid);
+
+
+  test.check(::basix::cell::type::point == Impl::cellType(GeometryTypes::vertex));
+  test.check(::basix::cell::type::interval == Impl::cellType(GeometryTypes::line));
+  test.check(::basix::cell::type::interval == Impl::cellType(GeometryTypes::simplex(1)));
+  test.check(::basix::cell::type::interval == Impl::cellType(GeometryTypes::cube(1)));
+  test.check(::basix::cell::type::triangle == Impl::cellType(GeometryTypes::triangle));
+  test.check(::basix::cell::type::quadrilateral ==Impl::cellType( GeometryTypes::quadrilateral));
+  test.check(::basix::cell::type::tetrahedron == Impl::cellType(GeometryTypes::tetrahedron));
+  test.check(::basix::cell::type::hexahedron == Impl::cellType(GeometryTypes::hexahedron));
+  test.check(::basix::cell::type::prism == Impl::cellType(GeometryTypes::prism));
+  test.check(::basix::cell::type::pyramid == Impl::cellType(GeometryTypes::pyramid));
+
+  return test.exit();
+}
 
 int main(int argc, char** argv)
 {
@@ -115,5 +145,5 @@ int main(int argc, char** argv)
     std::cout << std::endl;
   }
 
-  return success ? 0 : 1;
+  return (success ? 0 : 1) + testUtility();
 }

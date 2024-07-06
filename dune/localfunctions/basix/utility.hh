@@ -33,16 +33,25 @@ namespace Dune::Impl {
   // Map the Dune::GeometryType to cell::type from basix
   inline basix::cell::type cellType (GeometryType type)
   {
-    switch (type.toId()) {
-      case GeometryTypes::vertex.toId():        return basix::cell::type::point;
-      case GeometryTypes::line.toId():          return basix::cell::type::interval;
-      case GeometryTypes::triangle.toId():      return basix::cell::type::triangle;
-      case GeometryTypes::tetrahedron.toId():   return basix::cell::type::tetrahedron;
-      case GeometryTypes::quadrilateral.toId(): return basix::cell::type::quadrilateral;
-      case GeometryTypes::hexahedron.toId():    return basix::cell::type::hexahedron;
-      case GeometryTypes::prism.toId():         return basix::cell::type::prism;
-      case GeometryTypes::pyramid.toId():       return basix::cell::type::pyramid;
-      default: return basix::cell::type{};
+    if (type.isVertex())
+      return basix::cell::type::point;
+    else if (type.isLine())
+      return basix::cell::type::interval;
+    else if (type.isTriangle())
+      return basix::cell::type::triangle;
+    else if (type.isTetrahedron())
+      return basix::cell::type::tetrahedron;
+    else if (type.isQuadrilateral())
+      return basix::cell::type::quadrilateral;
+    else if (type.isHexahedron())
+      return basix::cell::type::hexahedron;
+    else if (type.isPrism())
+      return basix::cell::type::prism;
+    else if (type.isPyramid())
+      return basix::cell::type::pyramid;
+    else {
+      DUNE_THROW(Dune::NotImplemented, "GeometryType not representable as basix::cell::type");
+      return basix::cell::type{};
     }
   }
 
@@ -63,6 +72,25 @@ namespace Dune::Impl {
 
     return perm[(int)(cell_type)][dim][s];
   }
+
+  inline int entityIndex (GeometryType type, int dim, int s)
+  {
+    // {cell_type, dimension, entity}
+    static constexpr int perm[number_of_cell_types][4][12]{
+      { {0} }, // point
+      { {0,1}, {0} }, // interval
+      { {0,1,2}, {2,1,0}, {0} }, // triangle
+      { {0,1,2,3}, {5,4,2,3,1,0}, {3,2,1,0}, {0} }, // tetrahedron
+      { {0,1,2,3}, {1,2,0,3}, {0} }, // quadrilateral
+      { {0,1,2,3,4,5,6,7}, {2,4,6,7,1,3,0,5,9,10,8,11}, {2,3,1,4,0,5}, {0} }, // hexahedron
+      { {0,1,2,3,4,5}, {2,4,5,0,1,3,6,7,8}, {1,2,3,0,4}, {0} }, // prism
+      { {0,1,2,3,4}, {1,3,0,5,2,4,6,7}, {0,2,3,1,4}, {0} } // pyramid
+    };
+
+    ::basix::cell::type cell_type = cellType(type);
+    return perm[(int)(cell_type)][dim][s];
+  }
+
 
   // Map the derivative-order tuple from the partial() method to the
   // derivative index used in basix
