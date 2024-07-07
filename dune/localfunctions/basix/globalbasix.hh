@@ -272,31 +272,16 @@ public:
 
 public:
   /// \brief Construct a global finite-element from an associated local finite-element
-  explicit BasixFiniteElement (std::shared_ptr<LocalFiniteElement> lfe)
+  explicit BasixFiniteElement (LocalFiniteElement lfe)
     : lfe_(std::move(lfe))
-    , basis_{&lfe_->localBasis()}
-    , coefficients_{&lfe_->localCoefficients()}
-    , interpolation_{&lfe_->localInterpolation()}
-  {}
-
-  /// \brief Construct a global finite-element from an associated local finite-element
-  explicit BasixFiniteElement (const LocalFiniteElement& lfe)
-    : BasixFiniteElement(stackobject_to_shared_ptr(lfe))
-  {}
-
-  /// \brief Construct a global finite-element from an associated local finite-element
-  explicit BasixFiniteElement (LocalFiniteElement&& lfe)
-    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(std::move(lfe)))
-  {}
-
-  /// \brief Construct the local finite-element from the basix library
-  explicit BasixFiniteElement (const Basix& basix)
-    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(stackobject_to_shared_ptr(basix)))
+    , basis_{&lfe_.localBasis()}
+    , coefficients_{&lfe_.localCoefficients()}
+    , interpolation_{&lfe_.localInterpolation()}
   {}
 
   /// \brief Construct the local finite-element from the basix library.
-  explicit BasixFiniteElement (Basix&& basix)
-    : BasixFiniteElement(std::make_shared<LocalFiniteElement>(std::make_shared<Basix>(std::move(basix))))
+  explicit BasixFiniteElement (Basix basix)
+    : BasixFiniteElement(LocalFiniteElement(std::move(basix)))
   {}
 
   /// \brief Move constructor, needs to re-assign the internal pointers.
@@ -342,15 +327,15 @@ public:
   /// \brief Return the dimension of the finite-element
   std::size_t size () const
   {
-    return lfe_->size();
+    return lfe_.size();
   }
 
   /// \brief Return the GeometryType the local finite-element is defined on
   GeometryType type () const
   {
     assert(geometry_.has_value());
-    assert(lfe_->type() == geometry_->type());
-    return lfe_->type();
+    assert(lfe_.type() == geometry_->type());
+    return lfe_.type();
   }
 
   std::uint32_t cellInfo () const
@@ -365,7 +350,7 @@ public:
   }
 
 private:
-  std::shared_ptr<LocalFiniteElement> lfe_;
+  LocalFiniteElement lfe_;
   std::optional<Geometry> geometry_ = std::nullopt;
   std::uint32_t cellInfo_ = 0;
 

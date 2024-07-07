@@ -294,21 +294,11 @@ public:
 
 public:
   /// \brief Construct a local finite-element from the Basix definition
-  explicit BasixLocalFiniteElement (std::shared_ptr<const Basix> basix)
+  explicit BasixLocalFiniteElement (Basix basix)
     : basix_(std::move(basix))
-    , localBasis_{basix_.get()}
-    , localCoefficients_{basix_.get()}
-    , localInterpolation_{basix_.get()}
-  {}
-
-  /// \brief Construct a local finite-element from the Basix definition
-  explicit BasixLocalFiniteElement (const Basix& basix)
-    : BasixLocalFiniteElement(stackobject_to_shared_ptr(basix))
-  {}
-
-  /// \brief Construct a local finite-element from the Basix definition
-  explicit BasixLocalFiniteElement (Basix&& basix)
-    : BasixLocalFiniteElement(std::make_shared<Basix>(std::move(basix)))
+    , localBasis_{&basix_}
+    , localCoefficients_{&basix_}
+    , localInterpolation_{&basix_}
   {}
 
   /// \brief Copy constructor, needs to re-assign the internal pointers
@@ -333,23 +323,23 @@ public:
   /// \brief Return the dimension of the local finite-element
   std::size_t size () const
   {
-    return basix_->dim();
+    return basix_.dim();
   }
 
   /// \brief Return the GeometryType the local finite-element is defined on
   GeometryType type () const
   {
-    return Impl::geometryType(basix_->cell_type());
+    return Impl::geometryType(basix_.cell_type());
   }
 
   /// \brief Obtain a reference to the basix implementation
   const Basix& basix () const
   {
-    return *basix_;
+    return basix_;
   }
 
 private:
-  std::shared_ptr<const Basix> basix_;
+  Basix basix_;
 
   LocalBasis localBasis_;
   LocalCoefficients localCoefficients_;
