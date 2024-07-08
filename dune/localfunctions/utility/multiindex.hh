@@ -120,14 +120,6 @@ namespace Dune
       factor_ = 0.;
       return *this;
     }
-    This &operator= ( const Unity<This> &f )
-    {
-      remove();
-      vecZ_ = 0;
-      vecOMZ_ = 0;
-      factor_ = 1.;
-      return *this;
-    }
     template <class F>
     This &operator= ( const F &f )
     {
@@ -455,28 +447,6 @@ namespace Dune
     } while (m);
     return out;
   }
-
-  template< int dim, class F>
-  struct Unity< MultiIndex< dim, F > >
-  {
-    typedef MultiIndex< dim, F > Field;
-
-    operator Field () const
-    {
-      return Field();
-    }
-
-    Field operator- ( const Field &other ) const
-    {
-      return Field( 1, other );
-    }
-
-    Field operator/ ( const Field &other ) const
-    {
-      return Field() / other;
-    }
-  };
-
 
 
   template< int dim, class F >

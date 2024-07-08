@@ -11,7 +11,7 @@
 #include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
 
-#include <dune/localfunctions/lagrange/emptypoints.hh>
+#include <dune/localfunctions/lagrange/lagrangepointset.hh>
 #include <dune/localfunctions/utility/field.hh>
 
 namespace Dune
@@ -143,9 +143,9 @@ namespace Dune
 
   template< class F, unsigned int dim >
   class EquidistantPointSet
-    : public EmptyPointSet< F, dim >
+    : public LagrangePointSet< F, dim >
   {
-    typedef EmptyPointSet< F, dim > Base;
+    typedef LagrangePointSet< F, dim > Base;
 
   public:
     static const unsigned int dimension = dim;

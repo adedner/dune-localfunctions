@@ -197,7 +197,7 @@ namespace Dune
            *
            * The loop over the monomials is needed to obtain the corresponding column index.
            */
-          for (int w=homogen+notHomogen; w<val.size(); ++w)
+          for (std::size_t w=homogen+notHomogen; w<val.size(); ++w)
           {
             if (val[w] == xval*x[0])
               mat_[row+1][w] = 1.;
