@@ -13,19 +13,15 @@
 namespace Dune
 {
   /**
-   * @brief A local L2 interpolation taking a test basis and a quadrature
-   *        rule.
+   * \brief A local L2 interpolation taking a test basis and a quadrature rule.
    *
-   * This class computes a local interpolation where the coefficients
-   * are of the form:
-   *     c = M^{-1}b
-   * - M is the mass matrix with respect to the given basis and
-   * - b = int f phi (where phi are the basis functions).
-   * Thus the resulting local function u=c.varphi is defined through
-   * the l2 interpolation int u phi = in f phi for all phi in the
-   * base function set.
+   * This class computes a local interpolation based on an L2-projection, where the coefficients
+   * are of the form \f$c = M^{-1}b\f$ with
+   * - \f$M = M_{ij} = \int_T \phi_i \phi_j\f$ is the mass matrix with respect to the given basis,
+   * - \f$b = b_{i} = \int_T f phi_i\f$ (where \f$\phi_i\f$ are the basis functions), and
+   * - \f$T\f$ the reference element domain.
    **/
-  template< class B, class Q >
+  template <class B, class Q>
   class PrismaticProductLocalInterpolation
   {
     using LocalBasis = B;
@@ -41,40 +37,41 @@ namespace Dune
       , quadrature_(quadrature)
       , massMatrix_(basis_.size(), basis_.size(), RangeFieldType(0))
     {
-      std::vector<RangeType> basisValues( basis_.size() );
+      std::vector<RangeType> basisValues(basis_.size());
       for( auto& qp : quadrature_) {
-        basis_.evaluateFunction( qp.position(), basisValues );
-        for (unsigned int i=0; i<basis_.size(); ++i)
-          for (unsigned int j=0; j<basis_.size(); ++j)
-            massMatrix_[i][j] += (basisValues[i]*basisValues[j]) * qp.weight();
+        basis_.evaluateFunction(qp.position(), basisValues);
+        for (std::size_t i = 0; i < basis_.size(); ++i)
+          for (std::size_t j = 0; j < basis_.size(); ++j)
+            massMatrix_[i][j] += (basisValues[i] * basisValues[j]) * qp.weight();
       }
       massMatrix_.invert();
     }
 
-    /** \brief Interpolate a function that implements Range operator()(Domain) */
+    //! Interpolate a function that implements Range operator()(Domain)
     template <class Function, class C>
     void interpolate (const Function& f, std::vector<C>& coefficients) const
     {
       using R = std::decay_t<std::invoke_result_t<Function, DomainType>>;
-      const unsigned int size = basis_.size();
-      thread_local std::vector<R> rhs( size );
-      thread_local std::vector<RangeType> basisValues( size );
+      std::size_t size = basis_.size();
+      thread_local std::vector<R> rhs(size);
+      thread_local std::vector<RangeType> basisValues(size);
 
-      rhs.resize( size );
-      for (unsigned int i = 0; i < size; ++i)
-        rhs[ i ] = C(0);
+      rhs.resize(size);
+      for (std::size_t i = 0; i < size; ++i)
+        rhs[i] = 0;
 
       for (auto& qp : quadrature_) {
-        basis_.evaluateFunction( qp.position(), basisValues );
-        auto factor = f( qp.position() );
-        for (unsigned int i = 0; i < size; ++i)
+        basis_.evaluateFunction(qp.position(), basisValues);
+        auto factor = f(qp.position());
+        for (std::size_t i = 0; i < size; ++i)
           rhs[i] += factor * basisValues[i] * qp.weight();
       }
 
-      coefficients.resize( size );
-      for (unsigned int i=0; i<size; ++i) {
+      // compute the matrix vector product massMatrix^{-1} * rhs
+      coefficients.resize(size);
+      for (std::size_t i = 0; i < size; ++i) {
         coefficients[i] = 0;
-        for (unsigned int j=0; j<size; ++j) {
+        for (std::size_t j = 0; j < size; ++j) {
           coefficients[i] += massMatrix_[i][j] * rhs[j];
         }
       }

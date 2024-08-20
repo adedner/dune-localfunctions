@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 
+#include <dune/geometry/referenceelements.hh>
 #include <dune/geometry/type.hh>
 #include <dune/localfunctions/common/localkey.hh>
 
@@ -25,9 +26,10 @@ private:
 
 public:
   //! Construct a PrismaticProductLocalCoefficients object
-  template <class LC1, class LC2, class RefElem1, class RefElem2>
-  PrismaticProductLocalCoefficients (const LC1& lc1, const LC2& lc2, const RefElem1& refElem1, const RefElem2& refElem2)
-    : keys_(lc1.size() * lc2.size())
+  template <class LC1, class LC2, class M, class RefElem1, class RefElem2>
+  PrismaticProductLocalCoefficients (const LC1& lc1, const LC2& lc2, const M& mapping,
+                                     const RefElem1& refElem1, const RefElem2& refElem2)
+    : keys_(mapping.required_span_size())
   {
     std::array<unsigned int, 2> maxIndex2{0u,0u};
     for (std::size_t j = 0; j < lc2.size(); ++j) {
@@ -52,7 +54,7 @@ public:
         unsigned int codim = key1.codim() + key2.codim();
         unsigned int index = key1.index() * (maxIndex2[key2.codim()]+1) + key2.index();
 
-        keys_[i * lc2.size() + j] = LocalKey(subEntity, codim, index);
+        keys_[mapping(i, j)] = LocalKey(subEntity, codim, index);
         layout_[refElem.type(subEntity,codim)]++;
       }
     }
