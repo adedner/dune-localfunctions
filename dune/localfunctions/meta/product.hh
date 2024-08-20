@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <memory>
 
+#include <dune/common/std/extents.hh>
 #include <dune/common/std/layout_right.hh>
 
 #include <dune/geometry/quadraturerules.hh>
