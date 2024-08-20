@@ -38,8 +38,10 @@ namespace Dune {
     using LB1 = typename LFE1::Traits::LocalBasisType;
     using LB2 = typename LFE2::Traits::LocalBasisType;
 
-    using LQ1 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
-    using LQ2 = QuadratureRules<typename LB2::Traits::DomainFieldType, LB2::Traits::dimDomain>;
+    using LQs1 = QuadratureRules<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
+    using LQ1 = QuadratureRule<typename LB1::Traits::DomainFieldType, LB1::Traits::dimDomain>;
+    using LQs2 = QuadratureRules<typename LB2::Traits::DomainFieldType, LB2::Traits::dimDomain>;
+    using LQ2 = QuadratureRule<typename LB2::Traits::DomainFieldType, LB2::Traits::dimDomain>;
 
   public:
     //! types of component objects
@@ -54,10 +56,8 @@ namespace Dune {
       using LocalBasisType = PrismaticProductLocalBasis<LB1,LB2,MappingType>;
       //! type of the Coefficients
       using LocalCoefficientsType = PrismaticProductLocalCoefficients;
-      //! type of the quadrature rules to be used in L2-interpolation
-      using LocalQuadratureType = TensorProductQuadratureRule<typename LocalBasisType::Traits::DomainFieldType, LocalBasisType::Traits::dimDomain>;
       //! type of the Interpolation
-      using LocalInterpolationType = PrismaticProductLocalInterpolation<LocalBasisType,LocalQuadratureType>;
+      using LocalInterpolationType = PrismaticProductLocalInterpolation<LocalBasisType,LQ1,LQ2>;
     };
 
   private:
@@ -67,7 +67,6 @@ namespace Dune {
     typename Traits::MappingType m_;
     typename Traits::LocalBasisType lb_;
     typename Traits::LocalCoefficientsType lc_;
-    typename Traits::LocalQuadratureType lq_;
     typename Traits::LocalInterpolationType li_;
 
   public:
@@ -85,10 +84,8 @@ namespace Dune {
       , lc_(lfe1_->localCoefficients(), lfe2_->localCoefficients(), m_,
           referenceElement<typename LB1::Traits::DomainFieldType,LB1::Traits::dimDomain>(lfe1_->type()),
           referenceElement<typename LB2::Traits::DomainFieldType,LB2::Traits::dimDomain>(lfe2_->type()))
-      , lq_(GeometryTypes::prismaticProduct(lfe1_->type(), lfe2_->type()),
-          LQ1::rule(lfe1_->type(), lfe1_->localBasis().order()+1),
-          LQ2::rule(lfe2_->type(), lfe2_->localBasis().order()+1))
-      , li_(lb_, lq_)
+      , li_(lb_, LQs1::rule(lfe1_->type(), 2*lfe1_->localBasis().order()+1),
+                 LQs2::rule(lfe2_->type(), 2*lfe2_->localBasis().order()+1))
     {
       assert(m_.required_span_size() == lfe1_->size() * lfe2_->size());
     }

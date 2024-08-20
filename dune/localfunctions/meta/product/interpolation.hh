@@ -21,28 +21,37 @@ namespace Dune
    * - \f$b = b_{i} = \int_T f phi_i\f$ (where \f$\phi_i\f$ are the basis functions), and
    * - \f$T\f$ the reference element domain.
    **/
-  template <class B, class Q>
+  template <class B, class Q1, class Q2>
   class PrismaticProductLocalInterpolation
   {
     using LocalBasis = B;
-    using Quadrature = Q;
+    using Quad1 = Q1;
+    using Quad2 = Q2;
 
     using DomainType = typename LocalBasis::Traits::DomainType;
     using RangeType = typename LocalBasis::Traits::RangeType;
     using RangeFieldType = typename LocalBasis::Traits::RangeFieldType;
 
   public:
-    PrismaticProductLocalInterpolation (const LocalBasis& basis, const Quadrature& quadrature)
+    PrismaticProductLocalInterpolation (const LocalBasis& basis, const Quad1& quad1, const Quad2& quad2)
       : basis_(basis)
-      , quadrature_(quadrature)
+      , quad1_(quad1)
+      , quad2_(quad2)
       , massMatrix_(basis_.size(), basis_.size(), RangeFieldType(0))
     {
       std::vector<RangeType> basisValues(basis_.size());
-      for( auto& qp : quadrature_) {
-        basis_.evaluateFunction(qp.position(), basisValues);
-        for (std::size_t i = 0; i < basis_.size(); ++i)
-          for (std::size_t j = 0; j < basis_.size(); ++j)
-            massMatrix_[i][j] += (basisValues[i] * basisValues[j]) * qp.weight();
+      DomainType pos;
+      for (auto const& qp1 : quad1_) {
+        for (int k = 0; k < Quad1::d; ++k)
+          pos[k] = qp1.position()[k];
+        for (auto const& qp2 : quad2_) {
+          for (int k = 0; k < Quad2::d; ++k)
+            pos[Quad1::d + k] = qp2.position()[k];
+          basis_.evaluateFunction(pos, basisValues);
+          for (std::size_t i = 0; i < basis_.size(); ++i)
+            for (std::size_t j = 0; j < basis_.size(); ++j)
+              massMatrix_[i][j] += (basisValues[i] * basisValues[j]) * qp1.weight() * qp2.weight();
+        }
       }
       massMatrix_.invert();
     }
@@ -60,11 +69,18 @@ namespace Dune
       for (std::size_t i = 0; i < size; ++i)
         rhs[i] = 0;
 
-      for (auto& qp : quadrature_) {
-        basis_.evaluateFunction(qp.position(), basisValues);
-        auto factor = f(qp.position());
-        for (std::size_t i = 0; i < size; ++i)
-          rhs[i] += factor * basisValues[i] * qp.weight();
+      DomainType pos;
+      for (auto const& qp1 : quad1_) {
+        for (int k = 0; k < Quad1::d; ++k)
+          pos[k] = qp1.position()[k];
+        for (auto const& qp2 : quad2_) {
+          for (int k = 0; k < Quad2::d; ++k)
+            pos[Quad1::d + k] = qp2.position()[k];
+          basis_.evaluateFunction(pos, basisValues);
+          auto factor = f(pos);
+          for (std::size_t i = 0; i < size; ++i)
+            rhs[i] += factor * basisValues[i] * qp1.weight() * qp2.weight();
+        }
       }
 
       // compute the matrix vector product massMatrix^{-1} * rhs
@@ -80,7 +96,8 @@ namespace Dune
 
   private:
     const LocalBasis& basis_;
-    const Quadrature& quadrature_;
+    const Quad1& quad1_;
+    const Quad2& quad2_;
 
     using MassMatrix = DynamicMatrix<RangeFieldType>;
     MassMatrix massMatrix_;

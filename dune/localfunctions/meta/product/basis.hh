@@ -20,8 +20,6 @@ namespace Dune {
 template<class LB1, class LB2, class M>
 class PrismaticProductLocalBasis
 {
-  static_assert(LB2::Traits::dimDomain == 1,
-                "PrismaticProductLocalBasis works only with 1-dimensional domain of the second factor");
   static_assert(LB2::Traits::dimRange == 1,
                 "PrismaticProductLocalBasis works only with 1-dimensional range of the second factor");
 
@@ -84,7 +82,7 @@ public:
   std::size_t size () const noexcept { return m_->required_span_size(); }
 
   //! Polynomial order of the shape functions for quadrature
-  std::size_t order () const noexcept { return std::max(lb1_->order(), lb2_->order()); }
+  std::size_t order () const noexcept { return std::max<std::size_t>(lb1_->order(), lb2_->order()); }
 
   //! Evaluate all shape functions at given position
   void evaluateFunction (const Domain& x, std::vector<Range>& out) const
@@ -103,10 +101,13 @@ public:
   {
     thread_local std::vector<typename Traits1::JacobianType> lb1Jacobians;
     thread_local std::vector<typename Traits2::JacobianType> lb2Jacobians;
-    lb1_->evaluateFunction(domain1(x), lb1Values_);
-    lb1_->evaluateJacobian(domain1(x), lb1Jacobians);
-    lb2_->evaluateFunction(domain2(x), lb2Values_);
-    lb2_->evaluateJacobian(domain2(x), lb2Jacobians);
+
+    auto x1 = domain1(x);
+    auto x2 = domain2(x);
+    lb1_->evaluateFunction(x1, lb1Values_);
+    lb1_->evaluateJacobian(x1, lb1Jacobians);
+    lb2_->evaluateFunction(x2, lb2Values_);
+    lb2_->evaluateJacobian(x2, lb2Jacobians);
 
     out.resize(size());
     for (std::size_t i = 0; i < lb1Values_.size(); ++i) {
