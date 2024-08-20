@@ -71,11 +71,6 @@ namespace Dune {
 
   public:
     //! Construct a finite element
-    PrismaticProduct (const LFE1& lfe1, const LFE2& lfe2)
-      : PrismaticProduct(std::make_shared<const LFE1>(lfe1), std::make_shared<const LFE2>(lfe2))
-    {}
-
-    //! Construct a finite element
     PrismaticProduct (std::shared_ptr<const LFE1> lfe1, std::shared_ptr<const LFE2> lfe2)
       : lfe1_(std::move(lfe1))
       , lfe2_(std::move(lfe2))
@@ -89,6 +84,27 @@ namespace Dune {
     {
       assert(m_.required_span_size() == lfe1_->size() * lfe2_->size());
     }
+
+    //! Construct a finite element by creating a copy of the two local finite-elements
+    PrismaticProduct (const LFE1& lfe1, const LFE2& lfe2)
+      : PrismaticProduct(std::make_shared<const LFE1>(lfe1), std::make_shared<const LFE2>(lfe2))
+    {}
+
+    //! Copy constructor
+    PrismaticProduct (const PrismaticProduct& other)
+      : PrismaticProduct(other.lfe1_, other.lfe2_)
+    {}
+
+    //! Move constructor
+    PrismaticProduct (PrismaticProduct&& other)
+      : PrismaticProduct(std::move(other.lfe1_), std::move(other.lfe2_))
+    {}
+
+    //! Copy assignment is deleted
+    PrismaticProduct& operator= (const PrismaticProduct& other) = delete;
+
+    //! Move assignment is deleted
+    PrismaticProduct& operator= (PrismaticProduct&& other) = delete;
 
     //! Extract basis of this finite element
     /**
