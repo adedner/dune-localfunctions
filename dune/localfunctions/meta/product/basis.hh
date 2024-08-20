@@ -95,7 +95,7 @@ public:
     out.resize(size());
     for (std::size_t i = 0; i < lb1Values_.size(); ++i)
       for (std::size_t j = 0; j < lb2Values_.size(); ++j)
-        out[m_(i,j)] = lb1Values_[i] * lb2Values_[j];
+        out[(*m_)(i,j)] = lb1Values_[i] * lb2Values_[j];
   }
 
   //! Evaluate Jacobian of all shape functions at given position
@@ -113,9 +113,9 @@ public:
       for (std::size_t j = 0; j < lb2Values_.size(); ++j) {
         for (int k0 = 0; k0 < Traits1::dimRange; ++k0) {
           for (int k1 = 0; k1 < Traits1::dimDomain; ++k1)
-            out[m_(i,j)][k0][k1] = lb1Jacobians[i][k0][k1] * lb2Values_[j][0];
+            out[(*m_)(i,j)][k0][k1] = lb1Jacobians[i][k0][k1] * lb2Values_[j][0];
           for (int k1 = 0; k1 < Traits2::dimDomain; ++k1)
-            out[m_(i,j)][k0][Traits1::dimDomain + k1] = lb1Values_[i][k0] * lb2Jacobians[j][0][k1];
+            out[(*m_)(i,j)][k0][Traits1::dimDomain + k1] = lb1Values_[i][k0] * lb2Jacobians[j][0][k1];
         }
       }
     }
