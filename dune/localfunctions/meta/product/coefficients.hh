@@ -48,7 +48,7 @@ public:
         const auto& key2 = lc2.localKey(j);
 
         unsigned int shift1 = key1.codim()+1 > refElem1.dimension ? 0 : refElem1.size(key1.codim()+1);
-        unsigned int shift2 = key2.codim()+1 > 1 ? 0 : 1;
+        unsigned int shift2 = key2.codim()+1 > 1 ? 1 : 0;
 
         unsigned int subEntity = shift1*shift2 + refElem1.size(key1.codim())*key2.subEntity() + key1.subEntity();
         unsigned int codim = key1.codim() + key2.codim();
