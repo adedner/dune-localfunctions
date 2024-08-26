@@ -46,6 +46,8 @@ SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 * The class `LFEMatrix` is deprecated and should be replaced by `DynamicMatrix`
   from dune-common with a few interface changes.
 
+* The class `Unity` has been removed. It was never part of the official interface.
+
 # Release 2.9
 
 * The implementation of the Raviart-Thomas element now also includes 0th order shape functions on prisms and pyramids.

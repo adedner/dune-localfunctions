@@ -254,7 +254,7 @@ namespace Dune
                     Field *const values ) const
     {
       //start with vertex
-      *values = Unity< F >();
+      *values = F(1);
       F *const end = values + block;
       for( Field *it = values+1 ; it != end; ++it )
         *it = Zero< F >();
@@ -315,7 +315,7 @@ namespace Dune
                      Field *const values ) const
     {
       //start with vertex
-      values[ 0 ] = Unity< Field >();
+      values[ 0 ] = Field(1);
       static constexpr GeometryType gt = GeometryTypes::vertex;
 
       if constexpr ( geometry == gt)

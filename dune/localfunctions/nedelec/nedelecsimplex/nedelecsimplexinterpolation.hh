@@ -250,7 +250,7 @@ namespace Dune
         // use the first dim-1 vertices of a face to compute the tangents
         auto vertices = refElement.subEntities(i,1,dim).begin();
         auto vertex1 = *vertices;
-        for(int j=1; j<dim;j++)
+        for (unsigned int j=1; j<dim;j++)
         {
           auto vertex2 = vertices[j];
 
@@ -616,7 +616,7 @@ namespace Dune
         typename MVal::const_iterator mIter = mVal.begin();
         for (unsigned int row = startRow; row!=endRow; ++mIter)
         {
-          for(int i=0; i<dimension-1;i++)
+          for (unsigned int i=0; i<dimension-1;i++)
           {
             auto test = *mIter*faceTangents[i];
             matrix.add(row+i,col, weight*(nedTimesNormal*test) );
