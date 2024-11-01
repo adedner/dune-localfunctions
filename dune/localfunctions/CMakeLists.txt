@@ -33,6 +33,7 @@ install(FILES
   orthonormal.hh
   rannacherturek.hh
   raviartthomas.hh
+  restricted.hh
   refined.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/localfunctions)
 
