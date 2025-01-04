@@ -6,6 +6,7 @@
 #define DUNE_LOCALFUNCTIONS_LAGRANGE_LAGRANGECUBE_HH
 
 #include <array>
+#include <concepts>
 #include <numeric>
 
 #include <dune/common/fmatrix.hh>
@@ -645,6 +646,7 @@ namespace Dune { namespace Impl
      * \param[out] out Array of function values
      */
     template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       constexpr auto dim = LocalBasis::Traits::dimDomain;
@@ -689,6 +691,13 @@ namespace Dune { namespace Impl
 
         out[i] = f(x);
       }
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   };

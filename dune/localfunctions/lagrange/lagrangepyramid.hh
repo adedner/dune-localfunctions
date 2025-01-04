@@ -6,6 +6,7 @@
 #define DUNE_LOCALFUNCTIONS_LAGRANGE_LAGRANGEPYRAMID_HH
 
 #include <array>
+#include <concepts>
 #include <numeric>
 
 #include <dune/common/fmatrix.hh>
@@ -470,15 +471,15 @@ namespace Dune { namespace Impl
               (order[1] == 1 && order[2] == 1 && in[0] > in[1]) ||
               (order[0] == 1 && order[2] == 1 && in[0] <=in[1]))
           {
-            out = {1, -1, -1, 1, 0};
+            out = {{1}, {-1}, {-1}, {1}, {0}};
           } else
           {
-            out = {0, 0, 0, 0, 0};
+            out = {{0}, {0}, {0}, {0}, {0}};
           }
 
         } else
         {
-          out = {0, 0, 0, 0, 0};
+          out = {{0}, {0}, {0}, {0}, {0}};
         }
 
         return;
@@ -717,6 +718,7 @@ namespace Dune { namespace Impl
      * \param[out] out Array of function values
      */
     template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       constexpr auto k = LocalBasis::order();
@@ -766,6 +768,13 @@ namespace Dune { namespace Impl
       }
 
       DUNE_THROW(NotImplemented, "LagrangePyramidLocalInterpolation not implemented for order " << k);
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   };

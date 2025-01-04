@@ -5,6 +5,7 @@
 #ifndef DUNE_HIERARCHICAL_PRISM_P2_LOCALINTERPOLATION_HH
 #define DUNE_HIERARCHICAL_PRISM_P2_LOCALINTERPOLATION_HH
 
+#include <concepts>
 #include <vector>
 
 namespace Dune
@@ -18,10 +19,11 @@ namespace Dune
   public:
 
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      typename LB::Traits::RangeType y;
+      C y;
       out.resize(18);
 
       //First the  vertex dofs
@@ -72,6 +74,13 @@ namespace Dune
       x[0] = 0.5;    x[1] = 0.5;     x[2] = 0.5;    y = f(x);
       out[17] = y - 0.25*(out[2] + out[1] + out[4] + out[5] );
 
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
   };
 }

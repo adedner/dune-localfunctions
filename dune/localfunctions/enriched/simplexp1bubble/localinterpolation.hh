@@ -5,6 +5,7 @@
 #ifndef DUNE_LOCALFUNCTIONS_ENRICHED_SIMPLEXP1BUBBLE_LOCALINTERPOLATION_HH
 #define DUNE_LOCALFUNCTIONS_ENRICHED_SIMPLEXP1BUBBLE_LOCALINTERPOLATION_HH
 
+#include <concepts>
 #include <type_traits>
 #include <vector>
 
@@ -46,9 +47,8 @@ namespace Dune
      * \param[out] out  The interpolation coefficients `{f_i...,f_b}` are stored
      *                  in this output vector.
      **/
-    template<class F, class C,
-      class R = std::invoke_result_t<F, DomainType>,
-      std::enable_if_t<std::is_convertible_v<R, C>, int> = 0>
+    template<class F, class C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     static constexpr void interpolate (const F& f, std::vector<C>& out)
     {
       out.resize(numVertices+1);
@@ -65,7 +65,7 @@ namespace Dune
 
       // element bubble
       x = 1.0/(dim+1);
-      R y = f(x);
+      auto y = f(x);
 
       // evaluate the other shape functions in x and subtract this value
       std::vector<RangeType> sfValues;
@@ -73,7 +73,14 @@ namespace Dune
 
       out[numVertices] = y;
       for (int i = 0; i < numVertices; ++i)
-        out[numVertices] -= out[i]*sfValues[i];
+        out[numVertices] -= out[i]*sfValues[i][0];
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
   };
 

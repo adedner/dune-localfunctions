@@ -389,7 +389,7 @@ namespace Dune { namespace Impl
         // Helper method: Return a single Lagrangian factor of l_ij evaluated at x
         auto lagrangianFactor = [&lagrangeNode]
                                 (const int no, const int i, const int j, const typename Traits::DomainType& x)
-                                -> typename Traits::RangeType
+                                -> typename Traits::RangeFieldType
           {
             if ( no < i)
               return (x[0]-lagrangeNode(no))/(lagrangeNode(i)-lagrangeNode(no));
@@ -402,9 +402,9 @@ namespace Dune { namespace Impl
         // direction: Derive in x-direction if this is 0, otherwise derive in y direction
         auto lagrangianFactorDerivative = [&lagrangeNode]
                                           (const int direction, const int no, const int i, const int j, const typename Traits::DomainType&)
-                                          -> typename Traits::RangeType
+                                          -> typename Traits::RangeFieldType
           {
-            using T = typename Traits::RangeType;
+            using T = typename Traits::RangeFieldType;
             if ( no < i)
               return (direction == 0) ? T(1.0/(lagrangeNode(i)-lagrangeNode(no))) : T(0);
 
@@ -743,6 +743,7 @@ namespace Dune { namespace Impl
      * \param[out] out Array of function values
      */
     template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       constexpr auto dim = LocalBasis::Traits::dimDomain;
@@ -816,6 +817,13 @@ namespace Dune { namespace Impl
             out[n] = f(x);
             n++;
           }
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LocalBasis::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   };

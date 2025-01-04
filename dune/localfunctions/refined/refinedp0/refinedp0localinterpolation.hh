@@ -5,6 +5,7 @@
 #ifndef DUNE_REFINED_P0_LOCALINTERPOLATION_HH
 #define DUNE_REFINED_P0_LOCALINTERPOLATION_HH
 
+#include <concepts>
 #include <dune/localfunctions/refined/refinedp0/refinedp0localbasis.hh>
 
 namespace Dune
@@ -37,6 +38,7 @@ namespace Dune
 
 
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       out.resize(interpolationPoints_.size());
@@ -44,6 +46,13 @@ namespace Dune
       {
         out[i] = f(interpolationPoints_[i]);
       }
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   private:
@@ -79,6 +88,7 @@ namespace Dune
 
 
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       out.resize(interpolationPoints_.size());
@@ -86,6 +96,13 @@ namespace Dune
       {
         out[i] = f(interpolationPoints_[i]);
       }
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   private:

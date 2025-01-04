@@ -6,6 +6,7 @@
 #define DUNE_DUAL_Q1_LOCALINTERPOLATION_HH
 
 #include <array>
+#include <concepts>
 #include <vector>
 
 #include <dune/common/fvector.hh>
@@ -30,6 +31,7 @@ namespace Dune
 
     //! \brief Local interpolation of a function
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
@@ -68,6 +70,13 @@ namespace Dune
       // write result in out vector
       for (int i=0; i<size; i++)
         out[i] = sol[i];
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   private:

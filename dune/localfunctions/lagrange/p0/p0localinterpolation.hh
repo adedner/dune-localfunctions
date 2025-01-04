@@ -5,6 +5,7 @@
 #ifndef DUNE_P0LOCALINTERPOLATION_HH
 #define DUNE_P0LOCALINTERPOLATION_HH
 
+#include <concepts>
 #include <vector>
 #include <dune/geometry/referenceelements.hh>
 
@@ -24,6 +25,7 @@ namespace Dune
 
     //! determine coefficients interpolating a given function
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typedef typename LB::Traits::DomainType DomainType;
@@ -34,6 +36,13 @@ namespace Dune
 
       out.resize(1);
       out[0] = f(x);
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   private:
