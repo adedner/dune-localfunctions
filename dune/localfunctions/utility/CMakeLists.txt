@@ -9,6 +9,7 @@ install(FILES
   defaultbasisfactory.hh
   dglocalcoefficients.hh
   field.hh
+  hessian.hh
   interpolationhelper.hh
   l2interpolation.hh
   lfematrix.hh
