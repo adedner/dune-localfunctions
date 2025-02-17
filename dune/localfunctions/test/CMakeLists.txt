@@ -40,7 +40,6 @@ dune_add_test(SOURCES test-discontinuous.cc)
 
 dune_add_test(SOURCES test-enriched.cc)
 
-dune_add_test(SOURCES test-lobatto.cc)
 dune_add_test(SOURCES test-lobattocube.cc)
 dune_add_test(SOURCES test-lobattosimplex.cc)
 
