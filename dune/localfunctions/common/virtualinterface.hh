@@ -162,8 +162,6 @@ namespace Dune
       std::enable_if_t<not std::is_base_of<FunctionType, F>::value, int> = 0>
     void interpolate (const F& f, std::vector<CoefficientType>& out) const
     {
-      const auto& f = Impl::makeFunctionWithCallOperator<DomainType>(ff);
-
       const LocalInterpolationVirtualInterfaceBase<DomainType, RangeType>& asBase = *this;
       asBase.interpolate(FunctionType(std::cref(f)),out);
     }
@@ -176,8 +174,6 @@ namespace Dune
     template<class F, class C>
     void interpolate (const F& f, std::vector<C>& out) const
     {
-      const auto& f = Impl::makeFunctionWithCallOperator<DomainType>(ff);
-
       std::vector<CoefficientType> outDummy;
       const LocalInterpolationVirtualInterfaceBase<DomainType, RangeType>& asBase = *this;
       asBase.interpolate(FunctionType(std::cref(f)),outDummy);
