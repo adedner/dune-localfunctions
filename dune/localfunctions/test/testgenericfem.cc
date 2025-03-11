@@ -27,6 +27,51 @@ int main(int argc, char** argv) try
 {
   bool success = true;
 
+  std::cout << "Checking traces of Lagrange basis functions on pyramid" << std::endl;
+  {
+    using Domain = Dune::FieldVector<double,3>;
+    using Range = Dune::FieldVector<double,1>;
+    using FiniteElement = Dune::LagrangeLocalFiniteElement<Dune::EquidistantPointSet, 3, double, double>;
+
+    const auto& re = Dune::referenceElement<double,3>(Dune::GeometryTypes::pyramid);
+
+    auto fe = FiniteElement(Dune::GeometryTypes::pyramid, 1);
+
+    auto y = std::vector<Range>();
+
+    double tol = 1e-5;
+    for(auto codim : {1, 2})
+    {
+      for(auto i : Dune::range(re.size(codim)))
+      {
+        auto isZeroAtVertices = std::vector<char>(fe.size(), true);
+
+        for(auto j : re.subEntities(i, codim, 3))
+        {
+          auto x = re.position(j, 3);
+          fe.localBasis().evaluateFunction(x, y);
+          for(auto k : Dune::range(fe.size()))
+            isZeroAtVertices[k] &= std::fabs(y[k]) <= tol;
+        }
+        auto x = re.position(i, codim);
+        fe.localBasis().evaluateFunction(x, y);
+        for(auto k : Dune::range(fe.size()))
+        {
+          if (isZeroAtVertices[k] and (std::fabs(y[k])>tol))
+          {
+            std::cout
+              << "Pyramid basis function " << k
+              << " is zero at all vertices of subentity " << i << " of codim " << codim
+              << " but has a non-vanishing value " << y[k]
+              << " at the subentities center " << x
+              << std::endl;
+            success = false;
+          }
+        }
+      }
+    }
+  }
+
   std::cout << "Testing LagrangeLocalFiniteElement<EquidistantPointSet> on 3d"
             << " simplex elements with double precision" << std::endl;
   for (unsigned int order : {1, 2, 4, 6})
