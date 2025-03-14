@@ -25,6 +25,13 @@ namespace Dune
     const typedef LP<F,dim> Object;
     typedef std::size_t Key;
 
+    /**
+     * \brief Create the LagrangeCoefficients and return the created object.
+     *
+     * The LagrangeCoefficients are identical to the PointSet `LP` instantiated
+     * with the field type `F` and the dimension `dim`. Thus, the PointSet must
+     * provide for each Lagrange point an associated LocalKey.
+     */
     template< GeometryType::Id geometryId >
     static Object *create ( const Key &order )
     {

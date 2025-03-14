@@ -335,7 +335,7 @@ namespace Dune
 
   /**
    * Specialized version of PolynomialBasis with FieldMatrix for matrix
-   * coefficience and std::vector for container type with FieldVector as
+   * coefficients and std::vector for container type with FieldVector as
    * value type. This class stores the coefficient matrix with can be
    * constructed via the fill method
    */

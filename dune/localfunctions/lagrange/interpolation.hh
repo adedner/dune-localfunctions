@@ -36,33 +36,55 @@ namespace Dune
 
   private:
     friend struct LagrangeInterpolationFactory<LP,dim,F>;
+    typedef typename LagrangePointSet::LagrangePoint::Vector Point;
+
+    /*
+     * The LagrangePointSet object is created inside the
+     * LagrangeInterpolationFactory::create method and
+     * the object is released in the corresponding
+     * LagrangeInterpolationFactory::release method.
+     */
     const LagrangePointSet &lagrangePoints_;
 
+    // The object is constructed by the LagrangeInterpolationFactory
     explicit LocalLagrangeInterpolation ( const LagrangePointSet &lagrangePoints )
       : lagrangePoints_( lagrangePoints )
     {}
 
+    // Access to the LagrangePointSet provided to the LagrangeInterpolationFactory
     const LagrangePointSet *points () const { return &lagrangePoints_; }
 
-    template< class Fn, class Vector >
-    auto interpolate ( const Fn &fn, Vector &coefficients, PriorityTag< 1 > ) const
-      -> std::enable_if_t< std::is_invocable_v< const Fn &, decltype( this->lagrangePoints_.begin()->point() ) > >
-    {
-      unsigned int index = 0;
-      for( const auto &lp : lagrangePoints_ )
-        field_cast( fn( lp.point() ), coefficients[ index++ ] );
-    }
-
   public:
+    /**
+     * \brief Compute the Lagrange interpolation of the function `fn` and store
+     * the interpolation coefficients associated to the Lagrange basis in the
+     * output vector `coefficients`.
+     *
+     * The interpolation simply evaluates the function `fn` in all Lagrange points
+     * given by the `LagrangePointSet`.
+     */
     template< class Fn, class Vector,
+      decltype(std::declval<Fn>()(std::declval<Point>()),bool{}) = true,
       decltype(std::declval<Vector>().size(),bool{}) = true,
       decltype(std::declval<Vector>().resize(0u),bool{}) = true>
     void interpolate ( const Fn &fn, Vector &coefficients ) const
     {
       coefficients.resize( lagrangePoints_.size() );
-      interpolate( fn, coefficients, PriorityTag< 42 >() );
+
+      unsigned int index = 0;
+      for( const auto &lp : lagrangePoints_ )
+        field_cast( fn( lp.point() ), coefficients[index++] );
     }
 
+    /**
+     * \brief Evaluate the (monomial) `basis` functions in the Lagrange points
+     * to build up a Vandermonde matrix for computing the Lagrange basis functions.
+     *
+     * The Vandermonde matrix is stored in `coefficients`. It is assumed that the
+     * matrix is represented as a vector-of-vectors like data structure. The rows
+     * of the matrix correspond to the Lagrange point and the columns to the
+     * (monomial) basis functions.
+     */
     template< class Basis, class Matrix,
       decltype(std::declval<Matrix>().rows(),bool{}) = true,
       decltype(std::declval<Matrix>().cols(),bool{}) = true,
@@ -76,6 +98,7 @@ namespace Dune
         basis.template evaluate< 0 >( lp.point(), coefficients[index++] );
     }
 
+    /// \brief Return the set of Lagrange points
     const LagrangePointSet &lagrangePoints () const { return lagrangePoints_; }
   };
 

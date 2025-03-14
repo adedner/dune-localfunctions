@@ -709,6 +709,7 @@ namespace Dune
 
     virtual void evaluate ( const unsigned int deriv, const DomainVector &x,
                             Field *const values ) const = 0;
+
     template < unsigned int deriv >
     void evaluate ( const DomainVector &x,
                     Field *const values ) const
@@ -727,6 +728,13 @@ namespace Dune
     {
       evaluate<deriv>(x,&(values->block()));
     }
+
+    /**
+     * \brief Evaluate the derivatives `deriv` in the point `x` and store the result in `values`.
+     *
+     * This overload is chosen if the output vector is provided as a (contiguous) container.
+     * A pointer to its first element is passed to one of the other overloads.
+     **/
     template <unsigned int deriv, class Vector>
     void evaluate ( const DomainVector &x,
                     Vector &values ) const
@@ -739,15 +747,14 @@ namespace Dune
     {
       evaluate<0>(x,values);
     }
-    template< class DVector, class RVector >
-    void evaluate ( const DVector &x, RVector &values ) const
-    {
-      assert( DVector::dimension == dimension);
-      DomainVector bx;
-      for( int d = 0; d < dimension; ++d )
-        field_cast( x[ d ], bx[ d ] );
-      evaluate<0>( bx, values );
-    }
+
+    /**
+     * \brief Evaluate the derivatives `deriv` in the point `x` and store the result in `values`.
+     *
+     * This overload is chosen if the domain vector `x` is provided in a vector type
+     * other than `DomainVector`. It is first converted into the right data structure
+     * and then one of the other overloads called.
+     **/
     template< unsigned int deriv, class DVector, class RVector >
     void evaluate ( const DVector &x, RVector &values ) const
     {
@@ -757,8 +764,14 @@ namespace Dune
         field_cast( x[ d ], bx[ d ] );
       evaluate<deriv>( bx, values );
     }
+    template< class DVector, class RVector >
+    void evaluate ( const DVector &x, RVector &values ) const
+    {
+      evaluate<0>( x, values );
+    }
 
     virtual void integrate ( Field *const values ) const = 0;
+
     template <class Vector>
     void integrate ( Vector &values ) const
     {
