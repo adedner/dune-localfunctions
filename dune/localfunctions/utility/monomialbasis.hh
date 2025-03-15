@@ -99,33 +99,33 @@ namespace Dune
     // numBaseFunctions_[ k ] = sizes_[ 0 ] + ... + sizes_[ k ]
     unsigned int numBaseFunctions_[maxOrder_+1];
 
-    unsigned int operator() ( const unsigned int order ) const
+    constexpr unsigned int operator() ( const unsigned int order ) const
     {
       return numBaseFunctions_[ order ];
     }
 
-    unsigned int size ( unsigned int order ) const
+    constexpr unsigned int size ( unsigned int order ) const
     {
       return sizes_[ order ];
     }
 
-    unsigned int maxOrder() const
+    constexpr unsigned int maxOrder() const
     {
       return maxOrder_;
     }
 
-    const unsigned int* sizes () const
+    constexpr const unsigned int* sizes () const
     {
       return sizes_;
     }
 
-    const unsigned int* numBaseFunctions () const
+    constexpr const unsigned int* numBaseFunctions () const
     {
       return numBaseFunctions_;
     }
 
   private:
-    MonomialBasisSize ( unsigned int order = maxOrder_ )
+    constexpr MonomialBasisSize ( unsigned int order = maxOrder_ )
     {
       constexpr GeometryType geometry = geometryId;
       constexpr auto dim = geometry.dim();
