@@ -23,7 +23,7 @@ namespace Dune
   * Classes for evaluating ''Monomials'' on any order
   * for all reference element type.
   * For a simplex topology these are the normal
-  * monomials for cube topologies the bimonomials.
+  * monomials for cube topologies the bi-monomials.
   * The construction follows the construction of the
   * generic geometries using tensor products for
   * prism generation and duffy transform for pyramid
@@ -82,40 +82,31 @@ namespace Dune
   template< GeometryType::Id geometryId >
   class MonomialBasisSize
   {
+    static const unsigned int maxOrder_ = 20;
     typedef MonomialBasisSize< geometryId > This;
 
   public:
-    static This &instance ()
+    static const This &instance ( unsigned int order )
     {
       static This _instance;
+      assert(order <= maxOrder_);
       return _instance;
     }
 
-    unsigned int maxOrder_;
-
     // sizes_[ k ]: number of basis functions of exactly order k
-    mutable unsigned int *sizes_;
+    unsigned int sizes_[maxOrder_+1];
 
     // numBaseFunctions_[ k ] = sizes_[ 0 ] + ... + sizes_[ k ]
-    mutable unsigned int *numBaseFunctions_;
-
-    MonomialBasisSize ()
-      : maxOrder_( 0 ),
-        sizes_( 0 ),
-        numBaseFunctions_( 0 )
-    {
-      computeSizes( 2 );
-    }
-
-    ~MonomialBasisSize ()
-    {
-      delete[] sizes_;
-      delete[] numBaseFunctions_;
-    }
+    unsigned int numBaseFunctions_[maxOrder_+1];
 
     unsigned int operator() ( const unsigned int order ) const
     {
       return numBaseFunctions_[ order ];
+    }
+
+    unsigned int size ( unsigned int order ) const
+    {
+      return sizes_[ order ];
     }
 
     unsigned int maxOrder() const
@@ -123,18 +114,19 @@ namespace Dune
       return maxOrder_;
     }
 
-    void computeSizes ( unsigned int order )
+    const unsigned int* sizes () const
     {
-      if (order <= maxOrder_)
-        return;
+      return sizes_;
+    }
 
-      maxOrder_ = order;
+    const unsigned int* numBaseFunctions () const
+    {
+      return numBaseFunctions_;
+    }
 
-      delete[] sizes_;
-      delete[] numBaseFunctions_;
-      sizes_            = new unsigned int[ order+1 ];
-      numBaseFunctions_ = new unsigned int[ order+1 ];
-
+  private:
+    MonomialBasisSize ( unsigned int order = maxOrder_ )
+    {
       constexpr GeometryType geometry = geometryId;
       constexpr auto dim = geometry.dim();
 
@@ -182,8 +174,8 @@ namespace Dune
                        const unsigned int numBaseFunctions, const F &z )
     {
       // n(d,k) = size<k>[d];
-      MySize &mySize = MySize::instance();
-      Size &size = Size::instance();
+      const MySize &mySize = MySize::instance(deriv);
+      const Size &size = Size::instance(deriv);
 
       const F *const rend = rit + size( deriv )*numBaseFunctions;
       for( ; rit != rend; )
@@ -196,27 +188,27 @@ namespace Dune
         for( unsigned d = 1; d <= deriv; ++d )
         {
           #ifndef NDEBUG
-          const F *const derivEnd = rit + mySize.sizes_[ d ];
+          const F *const derivEnd = rit + mySize.size(d);
           #endif
 
           {
-            const F *const drend = rit + mySize.sizes_[ d ] - mySize.sizes_[ d-1 ];
+            const F *const drend = rit + mySize.size(d) - mySize.size(d-1);
             for( ; rit != drend ; ++rit, ++wit )
               *wit = z * *rit;
           }
 
           for (unsigned int j=1; j<d; ++j)
           {
-            const F *const drend = rit + mySize.sizes_[ d-j ] - mySize.sizes_[ d-j-1 ];
+            const F *const drend = rit + mySize.size(d-j) - mySize.size(d-j-1);
             for( ; rit != drend ; ++prit, ++rit, ++wit )
               *wit = F(j) * *prit + z * *rit;
           }
           *wit = F(d) * *prit + z * *rit;
           ++prit, ++rit, ++wit;
           assert(derivEnd == rit);
-          rit += size.sizes_[d] - mySize.sizes_[d];
-          prit += size.sizes_[d-1] - mySize.sizes_[d-1];
-          const F *const emptyWitEnd = wit + size.sizes_[d] - mySize.sizes_[d];
+          rit += size.size(d) - mySize.size(d);
+          prit += size.size(d-1) - mySize.size(d-1);
+          const F *const emptyWitEnd = wit + size.size(d) - mySize.size(d);
           for ( ; wit != emptyWitEnd; ++wit )
             *wit = Zero<F>();
         }
@@ -325,8 +317,7 @@ namespace Dune
                              Field *const values ) const
     {
       typedef MonomialBasisHelper< dimDomain, dimD, Field > Helper;
-      const BaseSize &size = BaseSize::instance();
-      const_cast<BaseSize&>(size).computeSizes(order);
+      const BaseSize &size = BaseSize::instance(order);
 
       const Field &z = x[ dimDomain-1 ];
 
@@ -337,8 +328,8 @@ namespace Dune
       for( unsigned int k = 1; k <= order; ++k )
       {
         Field *row1 = values + block*offsets[ k-1 ];
-        Field *wit = row1 + block*size.sizes_[ k ];
-        Helper::copy( deriv, wit, row1, k*size.sizes_[ k ], z );
+        Field *wit = row1 + block*size.size(k);
+        Helper::copy( deriv, wit, row1, k*size.size(k), z );
         Helper::copy( deriv, wit, row0, size( k-1 ), z );
         row0 = row1;
       }
@@ -348,17 +339,17 @@ namespace Dune
                               const unsigned int *const offsets,
                               Field *const values ) const
     {
-      const BaseSize &size = BaseSize::instance();
-      const Size &mySize = Size::instance();
+      const BaseSize &size = BaseSize::instance(order);
+      const Size &mySize = Size::instance(order);
       // fill first column
       baseBasis_.integrate( order, offsets, values );
-      const unsigned int *const baseSizes = size.sizes_;
+      const unsigned int *const baseSizes = size.sizes();
 
       Field *row0 = values;
       for( unsigned int k = 1; k <= order; ++k )
       {
         Field *const row1begin = values + offsets[ k-1 ];
-        Field *const row1End = row1begin + mySize.sizes_[ k ];
+        Field *const row1End = row1begin + mySize.size(k);
         assert( (unsigned int)(row1End - values) <= offsets[ k ] );
 
         Field *row1 = row1begin;
@@ -409,7 +400,7 @@ namespace Dune
         for( unsigned int k = 1; k <= order; ++k )
         {
           Field *it = values + block*offsets[ k-1 ];
-          Field *const end = it + block*size.sizes_[ k ];
+          Field *const end = it + block*size.size(k);
           for( ; it != end; ++it )
             *it *= omzk;
           omzk *= omz;
@@ -422,7 +413,7 @@ namespace Dune
         for( unsigned int k = 1; k <= order; ++k )
         {
           Field *it = values + block*offsets[ k-1 ];
-          Field *const end = it + block*size.sizes_[ k ];
+          Field *const end = it + block*size.size(k);
           for( ; it != end; ++it )
             *it = Zero< Field >();
         }
@@ -436,8 +427,7 @@ namespace Dune
                            Field *const values ) const
     {
       typedef MonomialBasisHelper< dimDomain, dimD, Field > Helper;
-      const BaseSize &size = BaseSize::instance();
-      const_cast<BaseSize&>(size).computeSizes(order);
+      const BaseSize &size = BaseSize::instance(order);
 
       if( geometry.isSimplex() )
         evaluateSimplexBase( deriv, order, x, block, offsets, values, size );
@@ -448,7 +438,7 @@ namespace Dune
       for( unsigned int k = 1; k <= order; ++k )
       {
         Field *row1 = values + block*offsets[ k-1 ];
-        Field *wit = row1 + block*size.sizes_[ k ];
+        Field *wit = row1 + block*size.size(k);
         Helper::copy( deriv, wit, row0, size( k-1 ), x[ dimDomain-1 ] );
         row0 = row1;
       }
@@ -458,12 +448,12 @@ namespace Dune
                             const unsigned int *const offsets,
                             Field *const values ) const
     {
-      const BaseSize &size = BaseSize::instance();
+      const BaseSize &size = BaseSize::instance(order);
 
       // fill first column
       baseBasis_.integrate( order, offsets, values );
 
-      const unsigned int *const baseSizes = size.sizes_;
+      const unsigned int *const baseSizes = size.sizes();
 
       {
         Field *const col0End = values + baseSizes[ 0 ];
@@ -519,16 +509,14 @@ namespace Dune
 
     MonomialBasis (unsigned int order)
       : Base(),
-        order_(order),
-        size_(Size::instance())
+        order_(order)
     {
       assert(order<=1024); // avoid wrapping of unsigned int (0-1) order=1024 is quite high...)
     }
 
     const unsigned int *sizes ( unsigned int order ) const
     {
-      size_.computeSizes( order );
-      return size_.numBaseFunctions_;
+      return Size::instance(order).numBaseFunctions();
     }
 
     const unsigned int *sizes () const
@@ -538,14 +526,12 @@ namespace Dune
 
     unsigned int size () const
     {
-      size_.computeSizes( order_ );
-      return size_( order_ );
+      return Size::instance(order_)(order_);
     }
 
     unsigned int derivSize ( const unsigned int deriv ) const
     {
-      MonomialBasisSize< GeometryTypes::simplex(dimension).toId() >::instance().computeSizes( deriv );
-      return MonomialBasisSize< GeometryTypes::simplex(dimension).toId() >::instance() ( deriv );
+      return MonomialBasisSize< GeometryTypes::simplex(dimension).toId() >::instance(deriv) ( deriv );
     }
 
     unsigned int order () const
@@ -620,7 +606,6 @@ namespace Dune
     MonomialBasis(const This&);
     This& operator=(const This&);
     unsigned int order_;
-    Size &size_;
   };
 
 
