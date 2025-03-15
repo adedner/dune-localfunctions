@@ -53,22 +53,28 @@ namespace Dune
     }
 
   protected:
+    static Container& buffer ()
+    {
+      thread_local Container buffer_;
+      return buffer_;
+    }
+
+  protected:
     MonomialEvaluator(const Basis &basis,unsigned int order,unsigned int size)
       : basis_(basis),
         order_(order),
-        size_(size),
-        container_(0)
+        size_(size)
     {}
     template <int deriv>
-    void resize()
+    void resize(Container& container) const
     {
       const int totalSize = Derivatives<Field,dimension,dimRange,deriv,DerivativeLayoutNS::derivative>::size*size_;
-      container_.resize(totalSize);
+      container.resize(totalSize);
     }
+
     MonomialEvaluator(const MonomialEvaluator&);
     const Basis &basis_;
     unsigned int order_,size_;
-    Container container_;
   };
 
 
@@ -144,18 +150,31 @@ namespace Dune
     StandardEvaluator(const Basis &basis)
       : Base(basis,basis.order(),basis.size())
     {}
+
     template <unsigned int deriv,class DVector>
-    typename Iterator<deriv>::All evaluate(const DVector &x)
+    typename Iterator<deriv>::All evaluate(const DVector &x) const
     {
-      Base::template resize<deriv>();
-      basis_.template evaluate<deriv>(x,&(container_[0]));
-      return typename Iterator<deriv>::All(container_);
+      return this->template evaluate<deriv>(x, Base::buffer());
     }
-    typename Iterator<0>::Integrate integrate()
+
+    template <unsigned int deriv,class DVector>
+    typename Iterator<deriv>::All evaluate(const DVector &x, Container& buffer) const
     {
-      Base::template resize<0>();
-      basis_.integrate(&(container_[0]));
-      return typename Iterator<0>::Integrate(container_);
+      Base::template resize<deriv>(buffer);
+      basis_.template evaluate<deriv>(x,buffer.data());
+      return typename Iterator<deriv>::All(buffer);
+    }
+
+    typename Iterator<0>::Integrate integrate() const
+    {
+      return this->integrate(Base::buffer());
+    }
+
+    typename Iterator<0>::Integrate integrate(Container& buffer)
+    {
+      Base::template resize<0>(buffer);
+      basis_.integrate(buffer.data());
+      return typename Iterator<0>::Integrate(buffer);
     }
 
   protected:
@@ -166,7 +185,7 @@ namespace Dune
   private:
     StandardEvaluator(const StandardEvaluator&);
     using Base::basis_;
-    using Base::container_;
+    // using Base::container_;
   };
 
 }

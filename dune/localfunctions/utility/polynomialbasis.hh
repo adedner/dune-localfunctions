@@ -329,7 +329,7 @@ namespace Dune
     PolynomialBasis &operator=(const PolynomialBasis&);
     const Basis &basis_;
     const CoefficientMatrix* coeffMatrix_;
-    mutable Evaluator eval_;
+    Evaluator eval_;
     unsigned int order_,size_;
   };
 
