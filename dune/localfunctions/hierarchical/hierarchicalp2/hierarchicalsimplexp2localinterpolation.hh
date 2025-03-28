@@ -5,6 +5,7 @@
 #ifndef DUNE_HIERARCHICAL_SIMPLEX_P2_LOCALINTERPOLATION_HH
 #define DUNE_HIERARCHICAL_SIMPLEX_P2_LOCALINTERPOLATION_HH
 
+#include <concepts>
 #include <vector>
 
 namespace Dune
@@ -18,10 +19,11 @@ namespace Dune
   public:
 
     template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      typename LB::Traits::RangeType y;
+      C y;
 
       static_assert(LB::Traits::dimDomain <= 3,
                     "LocalInterpolation for HierarchicalSimplexP2 finite elements"
@@ -99,6 +101,13 @@ namespace Dune
       }
     }
 
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
+    }
   };
 }
 

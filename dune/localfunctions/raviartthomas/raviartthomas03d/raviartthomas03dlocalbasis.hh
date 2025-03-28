@@ -81,7 +81,7 @@ namespace Dune
         auto const direction = std::distance(order.begin(), std::find(order.begin(), order.end(), 1));
         out.resize(size());
 
-        for (int i=0; i<size(); i++)
+        for (std::size_t i=0; i<size(); i++)
         {
           out[i][direction] = sign_[i]* std::sqrt(2.0) ;
           out[i][(direction+1)%3] = 0;

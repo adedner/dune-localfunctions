@@ -6,6 +6,7 @@
 #define DUNE_RANNACHER_TUREK_LOCALINTERPOLATION_HH
 
 #include <cassert>
+#include <concepts>
 #include <vector>
 
 #include <dune/common/fvector.hh>
@@ -35,6 +36,7 @@ namespace Dune
 
   public:
     template< class F, class C >
+      requires requires(F f, typename Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     void interpolate ( const F &f, std::vector< C > &out ) const
     {
       typedef typename Traits::DomainType DomainType;
@@ -54,6 +56,13 @@ namespace Dune
         const DomainType &x = referenceElement.position( i, 1 );
         out[ i ] = f(x);
       }
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
 
   };

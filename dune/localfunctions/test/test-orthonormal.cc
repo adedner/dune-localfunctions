@@ -50,9 +50,9 @@ bool test(unsigned int order)
 
     const unsigned int size = basis.size( );
 
-    std::vector< Dune::FieldVector< double, 1 > > y( size );
+    std::vector< double > y( size );
 
-    std::vector< Dune::FieldVector< double, 1 > > m( size * size );
+    std::vector< double > m( size * size );
     for( unsigned int i = 0; i < size * size; ++i )
       m[ i ] = 0;
 

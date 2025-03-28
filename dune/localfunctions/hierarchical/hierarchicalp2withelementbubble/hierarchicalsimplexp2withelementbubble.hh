@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cassert>
+#include <concepts>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -93,7 +94,7 @@ namespace Dune
       // element bubble function
       *outIt = power(dim+1, dim+1);
       for (int i = 0; i < numVertices; ++i)
-        *outIt *= vertexValues[i];
+        *outIt *= vertexValues[i][0];
       return outIt;
     }
 
@@ -122,7 +123,7 @@ namespace Dune
       out.resize(size());
 
       // vertex basis functions
-      RangeType tmp = 1;
+      D tmp = 1;
       for (int i = 0; i < dim; ++i) {
         out[0][0][i] = -1;
         for (int j = 0; j < dim; ++j)
@@ -141,7 +142,7 @@ namespace Dune
           const int v0 = refElem.subEntity(i,dim-1,0,dim);
           const int v1 = refElem.subEntity(i,dim-1,1,dim);
           for (int j = 0; j < dim; ++j)
-            out[n][0][j] = 4 * (out[v0][0][j] * shapeValues[v1] + shapeValues[v0] * out[v1][0][j]);
+            out[n][0][j] = 4 * (out[v0][0][j] * shapeValues[v1][0] + shapeValues[v0][0] * out[v1][0][j]);
         }
       }
 
@@ -173,7 +174,7 @@ namespace Dune
           d += i * order[i];
 
         // vertex basis functions
-        RangeType tmp = 1;
+        D tmp = 1;
         for (int i = 0; i < dim; ++i) {
           out[0] = -1;
           for (int j = 0; j < dim; ++j)
@@ -287,9 +288,8 @@ namespace Dune
      * \param[out] out  The interpolation coefficients `{f_i...,f_b}` are stored
      *                  in this output vector.
      **/
-    template<class F, class C,
-      class R = std::invoke_result_t<F, DomainType>,
-      std::enable_if_t<std::is_convertible_v<R, C>, int> = 0>
+    template<class F, class C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x) } -> std::convertible_to<C>; }
     static constexpr void interpolate (const F& f, std::vector<C>& out)
     {
       auto refElem = referenceElement<typename LB::Traits::DomainFieldType,dim>(GeometryTypes::simplex(dim));
@@ -308,20 +308,27 @@ namespace Dune
       if constexpr(dim > 1) {
         assert(numEdges == refElem.size(dim-1));
         for (int i = 0; i < numEdges; ++i) {
-          R y = f(refElem.position(i,dim-1));
+          C y = f(refElem.position(i,dim-1));
           LB::evaluateVertexFunctions(refElem.position(i,dim-1), shapeValues.begin());
           for (int j = 0; j < numVertices; ++j)
-            y -= out[j]*shapeValues[j];
+            y -= out[j]*shapeValues[j][0];
           out[n++] = y;
         }
       }
 
       // element bubble
-      R y = f(refElem.position(0,0));
+      C y = f(refElem.position(0,0));
       LB::evaluateAllFunctions(refElem.position(0,0), shapeValues.begin());
       for (int j = 0; j < numVertices+numEdges; ++j)
-        y -= out[j]*shapeValues[j];
+        y -= out[j]*shapeValues[j][0];
       out[n++] = y;
+    }
+
+    template<typename F, typename C>
+      requires requires(F f, typename LB::Traits::DomainType x) { { f(x)[0] } -> std::convertible_to<C>; }
+    void interpolate (const F& f, std::vector<C>& out) const
+    {
+      interpolate([&f](const auto& x) { return f(x)[0]; }, out);
     }
   };
 
