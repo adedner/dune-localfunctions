@@ -21,7 +21,7 @@ namespace Dune
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      typename LB::Traits::RangeType y;
+      auto y = f(x);
       out.resize(18);
 
       //First the  vertex dofs
@@ -34,43 +34,45 @@ namespace Dune
 
 
       // Then: the 9 edge dofs and the 3 face dofs
+      C factor(0.5);
       x[0] = 0.0;    x[1] = 0.0;     x[2] = 0.5;    y = f(x);
-      out[6] = y - 0.5*(out[0] + out[3]);
+      out[6] = y - factor*(out[0] + out[3]);
 
       x[0] = 1.0;    x[1] = 0.0;     x[2] = 0.5;    y = f(x);
-      out[7] = y - 0.5*(out[1] + out[4]);
+      out[7] = y - factor*(out[1] + out[4]);
 
       x[0] = 0.0;    x[1] = 1.0;     x[2] = 0.5;    y = f(x);
-      out[8] = y - 0.5*(out[2] + out[5]);
+      out[8] = y - factor*(out[2] + out[5]);
 
       x[0] = 0.5;    x[1] = 0.0;     x[2] = 0.0;    y = f(x);
-      out[9] = y - 0.5*(out[0] + out[1]);
+      out[9] = y - factor*(out[0] + out[1]);
 
       x[0] = 0.0;    x[1] = 0.5;     x[2] = 0.0;    y = f(x);
-      out[10] = y - 0.5*(out[2] + out[0]);
+      out[10] = y - factor*(out[2] + out[0]);
 
       x[0] = 0.5;    x[1] = 0.5;     x[2] = 0.0;    y = f(x);
-      out[11] = y - 0.5*(out[2] + out[1]);
+      out[11] = y - factor*(out[2] + out[1]);
 
       x[0] = 0.5;    x[1] = 0.0;     x[2] = 1.0;    y = f(x);
-      out[12] = y - 0.5*(out[3] + out[4]);
+      out[12] = y - factor*(out[3] + out[4]);
 
       x[0] = 0.0;    x[1] = 0.5;     x[2] = 1.0;    y = f(x);
-      out[13] = y - 0.5*(out[3] + out[5]);
+      out[13] = y - factor*(out[3] + out[5]);
 
       x[0] = 0.5;    x[1] = 0.5;     x[2] = 1.0;    y = f(x);
-      out[14] = y - 0.5*(out[4] + out[5]);
+      out[14] = y - factor*(out[4] + out[5]);
 
 
       //faces
+      factor = 0.25;
       x[0] = 0.5;    x[1] = 0.0;     x[2] = 0.5;    y = f(x);
-      out[15] = y - 0.25*(out[4] + out[1] + out[0] +  out[3] );
+      out[15] = y - factor*(out[4] + out[1] + out[0] +  out[3] );
 
       x[0] = 0.0;    x[1] = 0.5;     x[2] = 0.5;    y = f(x);
-      out[16] = y - 0.25*(out[2] + out[0] + out[3] + out[5] );
+      out[16] = y - factor*(out[2] + out[0] + out[3] + out[5] );
 
       x[0] = 0.5;    x[1] = 0.5;     x[2] = 0.5;    y = f(x);
-      out[17] = y - 0.25*(out[2] + out[1] + out[4] + out[5] );
+      out[17] = y - factor*(out[2] + out[1] + out[4] + out[5] );
 
     }
   };

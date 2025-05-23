@@ -176,29 +176,76 @@ DUNE_NO_DEPRECATED_END
   // Simplex implementations
   Dune::Hybrid::forEach(std::index_sequence<1,2,3>{},[&](auto dim)
   {
-    Dune::Hybrid::forEach(std::make_index_sequence<5>{},[&](auto order)
-    {
-      auto diffOrder = 2;
-      auto lfe = LagrangeSimplexLocalFiniteElement<double,double,dim,order>();
-      testSuite.subTest(testVirtualLFE(lfe, DisableNone, diffOrder));
-    });
+    LagrangeSimplexLocalFiniteElement<double,double,2,i> pklfem;
+    TEST_FE3(pklfem,DisableNone,2);
   });
 
-  // Cube implementations
-  Dune::Hybrid::forEach(std::index_sequence<1,2,3>{},[&](auto dim)
+  Hybrid::forEach(std::make_index_sequence<6>{},[&success](auto i)
   {
-    Dune::Hybrid::forEach(std::make_index_sequence<5>{},[&](auto order)
-    {
-      auto diffOrder = 2;
-      auto lfe = LagrangeCubeLocalFiniteElement<double,double,dim,order>();
-      testSuite.subTest(testVirtualLFE(lfe, DisableNone, diffOrder));
-    });
+    LagrangeSimplexLocalFiniteElement<double,double,3,i> pklfem;
+    TEST_FE(pklfem);
   });
+
+  // --------------------------------------------------------
+  //  Test some instantiations of LagrangeCubeLocalFiniteElement
+  // --------------------------------------------------------
+  LagrangeCubeLocalFiniteElement<double,double,1,1> qk11dlfem;
+  TEST_FE3(qk11dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,2,0> qk02dlfem;
+  TEST_FE3(qk02dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,2,1> qk12dlfem;
+  TEST_FE3(qk12dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,2,2> qk22dlfem;
+  TEST_FE3(qk22dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,2,3> qk32dlfem;
+  TEST_FE3(qk32dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,3,0> qk03dlfem;
+  TEST_FE3(qk03dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,3,1> qk13dlfem;
+  TEST_FE3(qk13dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,3,2> qk23dlfem;
+  TEST_FE3(qk23dlfem,DisableNone,2);
+
+  LagrangeCubeLocalFiniteElement<double,double,3,3> qk33dlfem;
+  TEST_FE3(qk33dlfem,DisableNone,2);
+
+  // test virtualized FEs
+  // notice that testFE add another level of virtualization
+  // notice that currently the VirtualInterface does not support the SIMD interpolation
+  LocalFiniteElementVirtualImp< LagrangeSimplexLocalFiniteElement<double,double,2,1> >
+  p12dlfemVirtual(p12dlfem);
+  TEST_FE2(p12dlfemVirtual,DisableSimdInterpolation,true);
+
+  LocalFiniteElementVirtualImp< PQ22DLocalFiniteElement<double,double> >
+  pq22dlfemVirtual(pq22dlfem);
+  TEST_FE2(pq22dlfemVirtual,DisableSimdInterpolation,true);
+
+  LocalFiniteElementVirtualImp<
+      LocalFiniteElementVirtualImp<
+          LagrangeSimplexLocalFiniteElement<double,double,2,1> > >
+  p12dlfemVirtualVirtual(p12dlfemVirtual);
+  TEST_FE2(p12dlfemVirtualVirtual,DisableSimdInterpolation,true);
+
+  LocalFiniteElementVirtualImp<
+      LocalFiniteElementVirtualImp<
+          PQ22DLocalFiniteElement<double,double> > >
+  pq22dlfemVirtualVirtual(pq22dlfemVirtual);
+  TEST_FE2(pq22dlfemVirtualVirtual,DisableSimdInterpolation,true);
+
+  typedef LocalFiniteElementVirtualInterface< LagrangeSimplexLocalFiniteElement<double,double,2,1>::Traits::LocalBasisType::Traits > Interface;
+  TEST_FE2(static_cast<const Interface&>(p12dlfemVirtual),DisableSimdInterpolation,true);
 
   // Test the LagrangeLocalFiniteElementCache
-  auto lagrangeLFECache = LagrangeLocalFiniteElementCache<double,double,2,2>();
-  testSuite.subTest(testVirtualLFE(lagrangeLFECache.get(GeometryTypes::simplex(2))));
-  testSuite.subTest(testVirtualLFE(lagrangeLFECache.get(GeometryTypes::cube(2))));
+  LagrangeLocalFiniteElementCache<double,double,2,2> lagrangeLFECache;
+  TEST_FE2(lagrangeLFECache.get(GeometryTypes::simplex(2)),DisableSimdInterpolation,true);
+  TEST_FE2(lagrangeLFECache.get(GeometryTypes::cube(2)),DisableSimdInterpolation,true);
 
   // Test whether asking the cache for an element of the wrong dimension throws an exception
   testSuite.checkThrow([&]{

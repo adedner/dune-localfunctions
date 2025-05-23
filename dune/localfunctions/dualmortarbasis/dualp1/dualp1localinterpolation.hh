@@ -45,13 +45,13 @@ namespace Dune
       // compute dual coefficients from the Lagrange ones
       out.resize(dim+1);
       for (int i=0; i<dim+1; i++) {
-        out[i] = 2*p1Interpolation[i]/(dim+2-faceDual);
+        out[i] = C(2.0 /(dim+2-faceDual))*p1Interpolation[i];
 
         for (int j=0; j<i; j++)
-          out[i] += p1Interpolation[j]/(dim+2-faceDual);
+          out[i] += C(1.0 /(dim+2-faceDual))*p1Interpolation[j];
 
         for (int j=i+1; j<=dim; j++)
-          out[i] += p1Interpolation[j]/(dim+2-faceDual);
+          out[i] += C(1.0 /(dim+2-faceDual))*p1Interpolation[j];
       }
     }
 

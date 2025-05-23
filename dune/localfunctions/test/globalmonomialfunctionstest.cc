@@ -41,7 +41,9 @@ static void Order(int &result)
 
         std::cout << "=== GeometryType " << geo.type() << std::endl;
 
-        bool success = testFE(geo, feFactory.make(geo), eps, delta);
+        auto fe = feFactory.make(geo);
+        typedef std::decay_t<decltype(fe)> FE;
+        bool success = testFE<Geometry,FE,true>(geo, fe, eps, delta);
 
         if(success && result != 1)
           result = 0;

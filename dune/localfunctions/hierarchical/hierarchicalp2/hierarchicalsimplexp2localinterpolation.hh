@@ -21,12 +21,13 @@ namespace Dune
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      typename LB::Traits::RangeType y;
+      auto y = f(x);
 
       static_assert(LB::Traits::dimDomain <= 3,
                     "LocalInterpolation for HierarchicalSimplexP2 finite elements"
                     " is only implemented for dimDomain <=3!");
 
+      C factor(0.5);
       switch ( int(LB::Traits::dimDomain))  {
 
       case 1 :
@@ -39,7 +40,7 @@ namespace Dune
 
         // Then: the edge dof
         x[0] = 0.5;   y = f(x);
-        out[1] = y - 0.5*(out[0] + out[2]);
+        out[1] = y - factor*(out[0] + out[2]);
 
         break;
 
@@ -55,13 +56,13 @@ namespace Dune
 
         // Then: the three edge dofs
         x[0] = 0.5;    x[1] = 0.0;      y = f(x);
-        out[1] = y - 0.5*(out[0] + out[2]);
+        out[1] = y - factor*(out[0] + out[2]);
 
         x[0] = 0.0;    x[1] = 0.5;      y = f(x);
-        out[3] = y - 0.5*(out[0] + out[5]);
+        out[3] = y - factor*(out[0] + out[5]);
 
         x[0] = 0.5;    x[1] = 0.5;      y = f(x);
-        out[4] = y - 0.5*(out[2] + out[5]);
+        out[4] = y - factor*(out[2] + out[5]);
 
         break;
 
@@ -77,22 +78,22 @@ namespace Dune
 
         // Then: the six edge dofs
         x[0] = 0.5;    x[1] = 0.0;     x[2] = 0.0;    y = f(x);
-        out[1] = y - 0.5*(out[0] + out[2]);
+        out[1] = y - factor*(out[0] + out[2]);
 
         x[0] = 0.0;    x[1] = 0.5;     x[2] = 0.0;    y = f(x);
-        out[3] = y - 0.5*(out[0] + out[5]);
+        out[3] = y - factor*(out[0] + out[5]);
 
         x[0] = 0.5;    x[1] = 0.5;     x[2] = 0.0;    y = f(x);
-        out[4] = y - 0.5*(out[2] + out[5]);
+        out[4] = y - factor*(out[2] + out[5]);
 
         x[0] = 0.0;    x[1] = 0.0;     x[2] = 0.5;    y = f(x);
-        out[6] = y - 0.5*(out[0] + out[9]);
+        out[6] = y - factor*(out[0] + out[9]);
 
         x[0] = 0.5;    x[1] = 0.0;     x[2] = 0.5;    y = f(x);
-        out[7] = y - 0.5*(out[2] + out[9]);
+        out[7] = y - factor*(out[2] + out[9]);
 
         x[0] = 0.0;    x[1] = 0.5;     x[2] = 0.5;    y = f(x);
-        out[8] = y - 0.5*(out[5] + out[9]);
+        out[8] = y - factor*(out[5] + out[9]);
 
         break;
 

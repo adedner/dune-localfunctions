@@ -5,6 +5,7 @@
 #ifndef DUNE_LOCALFUNCTIONS_MONOMIAL_MONOMIALLOCALINTERPOLATION_HH
 #define DUNE_LOCALFUNCTIONS_MONOMIAL_MONOMIALLOCALINTERPOLATION_HH
 
+#include <type_traits>
 #include <vector>
 
 #include <dune/common/fvector.hh>
@@ -65,21 +66,25 @@ namespace Dune
     void interpolate (const F& f, std::vector<C>& out) const
     {
       out.clear();
-      out.resize(size, 0);
+      out.resize(size,C(0.0));
 
       const QRiterator qrend = qr.end();
       for(QRiterator qrit = qr.begin(); qrit != qrend; ++qrit) {
         //TODO: mass matrix
-        R y = f(qrit->position());
+        auto y = f(qrit->position());
+        typedef std::decay_t<decltype(y)> RangeType;
 
         std::vector<R> base;
         lb.evaluateFunction(qrit->position(),base);
 
         for(unsigned int i = 0; i < size; ++i)
           for(unsigned int j = 0; j < size; ++j)
-            out[i] += Minv[i][j] * qrit->weight() * y * base[j];
-      }
-    }
+            if constexpr (std::is_arithmetic<typename RangeType::field_type>::value)
+              out[i] += Minv[i][j] * qrit->weight() * y * base[j];
+            else
+              out[i] += Minv[i][j] * qrit->weight() * y[0] * base[j];
+          }
+     }
 
   private:
     GeometryType gt;

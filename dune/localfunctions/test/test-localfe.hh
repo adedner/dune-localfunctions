@@ -13,8 +13,12 @@
  *  Dune versions.
  */
 
+#include "dune/common/simd/loop.hh"
+#include <cstddef>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <type_traits>
 #include <typeinfo>
 
 #include <dune/common/classname.hh>
@@ -24,6 +28,7 @@
 #include <dune/localfunctions/common/virtualinterface.hh>
 #include <dune/localfunctions/common/virtualwrappers.hh>
 #include <dune/localfunctions/common/localfiniteelement.hh>
+#include <vector>
 
 double TOL = 1e-9;
 // The FD approximation used for checking the Jacobian uses half of the
@@ -32,15 +37,15 @@ double jacobianTOL = 1e-5;  // sqrt(TOL)
 
 // This class wraps one shape function of a local finite element as a callable
 // that can be fed to the LocalInterpolation::interpolate method.
-template<class FE>
+template<class FE, class RangeType = typename FE::Traits::LocalBasisType::Traits::RangeType>
 class ShapeFunctionAsCallable
 {
   // These types are deliberately private: They are not part of a Callable API
   typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
-  typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeType BasisRangeType;
 public:
 
-  typedef typename FE::Traits::LocalBasisType::Traits::RangeFieldType CT;
+  typedef RangeType CT;
 
   ShapeFunctionAsCallable(const FE& fe, int shapeFunction) :
     fe_(fe),
@@ -49,9 +54,11 @@ public:
 
   RangeType operator() (DomainType x) const
   {
-    std::vector<RangeType> yy;
+    std::vector<BasisRangeType> yy;
     fe_.localBasis().evaluateFunction(x, yy);
-    return yy[shapeFunction_];
+    std::vector<RangeType> y(yy.size());
+    y[shapeFunction_] = yy[shapeFunction_];
+    return y[shapeFunction_];
   }
 
 private:
@@ -59,15 +66,129 @@ private:
   int shapeFunction_;
 };
 
+// This class defines a local finite element function.
+// It is determined by a local finite element and
+// representing the local basis and a coefficient vector.
+// This provides the evaluate method needed by the interpolate()
+// method.
+template <class FE, class R>
+class FEFunction
+{
+  const FE& fe;
+
+public:
+  using RangeType = R;
+  using BasisRangeType = typename FE::Traits::LocalBasisType::Traits::RangeType;
+  using DomainType = typename FE::Traits::LocalBasisType::Traits::DomainType;
+
+  std::vector<R> coeff;
+
+  FEFunction(const FE& fe_) : fe(fe_) { resetCoefficients(); }
+
+  void resetCoefficients() {
+    coeff.resize(fe.localBasis().size());
+    for (std::size_t i=0; i<coeff.size(); ++i)
+      coeff[i] = 0;
+  }
+
+  void setRandom(double max) {
+    coeff.resize(fe.localBasis().size());
+    for (std::size_t i=0; i<coeff.size(); ++i)
+      for (std::size_t l=0; l<Dune::Simd::lanes(coeff[i]); ++l)
+        Dune::Simd::lane(l, coeff[i][0]) = ((1.0*std::rand()) / RAND_MAX - 0.5)*2.0*max;
+  }
+
+  RangeType operator() (const DomainType& x) const {
+    RangeType y;
+    std::vector<BasisRangeType> yy;
+    fe.localBasis().evaluateFunction(x, yy);
+    y = 0.0;
+    for (std::size_t i=0; i<yy.size(); ++i)
+      y.axpy(coeff[i][0], yy[i]);
+    return y;
+  }
+
+};
+
+// Check if interpolation is consistent with basis evaluation.
+/**
+ * This test generates a local coefficient vector with random values from a
+ * certain range (-100..100).  It then uses the basis to wrap this coefficient
+ * vector into an element-local discrete function.  This is then interpolated
+ * into another coefficient vector using the interpolation of the finite
+ * element.  The two coefficient vectors are then compared.
+ *
+ * \param FE  The finite element to check
+ * \param eps Tolerance when comparing floating-point values
+ * \param n   Number of times to run the check.
+ */
+template<class FE, class RangeFieldType = typename FE::Traits::LocalBasisType::Traits::RangeType::field_type>
+bool testRandomInterpolation(const FE& fe, double eps=1e-12, int n=1)
+{
+  using std::abs;
+  using std::max;
+
+  bool success = true;
+  using BasisRangeType = typename FE::Traits::LocalBasisType::Traits::RangeType;
+  using CoeffType = Dune::FieldVector<RangeFieldType, BasisRangeType::dimension>;
+  FEFunction<FE, CoeffType> f(fe);
+  std::vector<CoeffType> coeff;
+  for(int i=0; i<n && success; ++i) {
+    // Set random coefficient vector
+    f.setRandom(100);
+
+    // Compute interpolation weights
+
+    //////////////////////////////////////////////////////////////////////////////
+    // Feed the shape functions to the 'interpolate' method in form of a callable.
+    //////////////////////////////////////////////////////////////////////////////
+    fe.localInterpolation().interpolate(f, coeff);
+
+    // Check size of weight vector
+    if (coeff.size() != fe.localBasis().size()) {
+      std::cout << "Bug in LocalInterpolation for finite element type "
+                << Dune::className<FE>() << ":" << std::endl;
+      std::cout << "    Interpolation vector has size " << coeff.size()
+                << std::endl;
+      std::cout << "    Basis has size " << fe.localBasis().size() << std::endl;
+      std::cout << std::endl;
+      success = false;
+
+      // skip rest of loop since that depends on matching sizes
+      continue;
+    }
+
+    // Check if interpolation weights are equal to coefficients
+    for(std::size_t j=0; j<coeff.size() && success; ++j) {
+      if ( Dune::Simd::anyTrue(abs(coeff[j][0]-f.coeff[j][0]) >
+                              (2*coeff.size()*eps)*(max(abs(f.coeff[j][0]), RangeFieldType(1.0))) ))
+      {
+        std::cout << std::setprecision(16);
+        std::cout << "Bug in LocalInterpolation for finite element type "
+                  << Dune::className<FE>() << ":" << std::endl;
+        std::cout << "    Interpolation weight " << j << " differs by "
+                  << abs(coeff[j][0]-f.coeff[j][0]) << " from coefficient of "
+                  << "linear combination." << std::endl;
+        std::cout << std::endl;
+        success = false;
+      }
+    }
+  }
+  return success;
+}
+
 
 // Check whether the degrees of freedom computed by LocalInterpolation
 // are dual to the shape functions.  See Ciarlet, "The Finite Element Method
 // for Elliptic Problems", 1978, for details.
-template<class FE>
-bool testLocalInterpolation(const FE& fe)
+template<class FE, class RangeFieldType = typename FE::Traits::LocalBasisType::Traits::RangeType::field_type>
+bool testShapeFunctionInterpolation(const FE& fe)
 {
-  using std::abs;
-  std::vector<typename ShapeFunctionAsCallable<FE>::CT> coeff;
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeType BasisRangeType;
+  typedef Dune::FieldVector<RangeFieldType, BasisRangeType::dimension> RangeType;
+  typedef typename ShapeFunctionAsCallable<FE,RangeType>::CT CoeffType;
+  std::vector<CoeffType> coeff;
+
   for(size_t i=0; i<fe.size(); ++i)
   {
     //////////////////////////////////////////////////////////////////////////////
@@ -75,7 +196,7 @@ bool testLocalInterpolation(const FE& fe)
     //////////////////////////////////////////////////////////////////////////////
 
     // The i-th shape function as a function that 'interpolate' can deal with
-    ShapeFunctionAsCallable<FE> sfAsCallable(fe, i);
+    ShapeFunctionAsCallable<FE,RangeType> sfAsCallable(fe, i);
 
     // Compute degrees of freedom for that shape function
     // We expect the result to be the i-th unit vector
@@ -92,10 +213,11 @@ bool testLocalInterpolation(const FE& fe)
       return false;
     }
 
+    using std::abs;
     // Check if interpolation weights are equal to coefficients
     for(std::size_t j=0; j<coeff.size(); ++j)
     {
-      if ( abs(coeff[j] - (i==j)) > TOL)
+      if ( Dune::Simd::anyTrue(abs(coeff[j][0] - (i==j)) > TOL))
       {
         std::cout << std::setprecision(16);
         std::cout << "Bug in LocalInterpolation for finite element type "
@@ -614,7 +736,8 @@ enum {
   DisableVirtualInterface = 2,
   DisableJacobian = 4,
   DisableEvaluate = 8,
-  DisableRepresentConstants = 16
+  DisableRepresentConstants = 16,
+  DisableSimdInterpolation = 32
 };
 
 /** \brief Call tests for given finite element
@@ -626,8 +749,11 @@ enum {
  *   points that avoid the problematic parts of the domain, we simply skip
  *   all test points that happen to be somewhere where the shape functions are
  *   not differentiable.
+ * \tparam FEisVirtual If true, the finite element is virtual and hence does currently not
+ *   support SIMD interpolation. This is used to disable the SIMD interpolation test in that
+ *   case. This is a workaround until there is a proper solution for this.
  */
-template<class FE>
+template<class FE, bool FEisVirtual = false>
 bool testFE(const FE& fe,
             char disabledTests = DisableNone,
             unsigned int diffOrder = 0,
@@ -635,6 +761,8 @@ bool testFE(const FE& fe,
 {
   // Order of the quadrature rule used to generate test points
   unsigned int quadOrder = 2;
+
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeType::field_type CT;
 
   bool success = true;
 
@@ -694,8 +822,16 @@ bool testFE(const FE& fe,
 
   if (not (disabledTests & DisableLocalInterpolation))
   {
-    success = testLocalInterpolation<FE>(fe) and success;
+    success = testShapeFunctionInterpolation<FE>(fe) and success;
+    success = testRandomInterpolation<FE>(fe) and success;
   }
+  // The virtual interface currently does not support SIMD interpolation
+  if constexpr (not FEisVirtual)
+    if (not (disabledTests & DisableSimdInterpolation))
+    {
+      std::cout << "------- Testing SIMD interpolation -----------" << std::endl;
+      success = testRandomInterpolation<FE,Dune::LoopSIMD<CT, 4>>(fe) and success;
+    }
 
   if (not (disabledTests & DisableRepresentConstants))
   {
@@ -726,7 +862,15 @@ bool testFE(const FE& fe,
 
     const VirtualFEImp virtualFE(fe);
     if (not (disabledTests & DisableLocalInterpolation))
-      success = testLocalInterpolation<VirtualFEInterface>(virtualFE) and success;
+    {
+      success = testShapeFunctionInterpolation<VirtualFEInterface>(virtualFE) and success;
+      success = testRandomInterpolation<VirtualFEInterface>(virtualFE) and success;
+    }
+    if (not (disabledTests & DisableSimdInterpolation))
+    {
+      std::cout << "------- Testing SIMD interpolation for virtual interface is currently useless -----------" << std::endl;
+      // The virtual interface currently does not support SIMD interpolation
+    }
     if (not (disabledTests & DisableJacobian))
     {
       success = testJacobian<VirtualFEInterface>(virtualFE, quadOrder, derivativePointSkip) and success;
@@ -739,7 +883,7 @@ bool testFE(const FE& fe,
 
     const TypeErasedLFE typeErasedLFE(fe);
     if (not (disabledTests & DisableLocalInterpolation))
-      success = testLocalInterpolation<TypeErasedLFE>(typeErasedLFE) and success;
+      success = testShapeFunctionInterpolation<TypeErasedLFE>(typeErasedLFE) and success;
     if (not (disabledTests & DisableJacobian))
       success = testJacobian<TypeErasedLFE>(typeErasedLFE, quadOrder, derivativePointSkip) and success;
 
@@ -755,9 +899,66 @@ bool testFE(const FE& fe,
   return success;
 }
 
-#define TEST_FE(A) { bool b = testFE(A); std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); success &= b; }
-#define TEST_FE2(A,B) { bool b = testFE(A, B); std::cout << "testFE(" #A ", " #B ") " << (b?"succeeded\n":"failed\n"); success &= b; }
-#define TEST_FE3(A,B,C) { bool b = testFE(A, B, C); std::cout << "testFE(" #A ", " #B ", " #C ") " << (b?"succeeded\n":"failed\n"); success &= b; }
-#define TEST_FE4(A,B,C,D) { bool b = testFE(A, B, C, D); std::cout << "testFE(" #A ", " #B ", " #C ", " #D ") " << (b?"succeeded\n":"failed\n"); success &= b; }
+// Some helper macros to call the tests
+#define TEST_FE_IMPL(A,V) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>,V>(A); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE_DEFAULT(A) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>>(A); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE2_IMPL(A,B,V) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>,V>(A,B); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE2_DEFAULT(A,B) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>>(A,B); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE3_IMPL(A,B,C,V) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>,V>(A,B,C); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE3_DEFAULT(A,B,C) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>>(A,B,C); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE4_IMPL(A,B,C,D,V) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>,V>(A,B,C,D); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+#define TEST_FE4_DEFAULT(A,B,C,D) { \
+  std::cout << "start tests for " #A << std::endl; \
+  bool b = testFE<std::decay_t<decltype(A)>>(A,B,C,D); \
+  std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
+  success &= b;}
+
+
+// Dispatcher helpers
+#define GET_MACRO_FE(_1, _2, NAME, ...) NAME
+#define GET_MACRO_FE2(_1, _2, _3, NAME, ...) NAME
+#define GET_MACRO_FE3(_1, _2, _3, _4, NAME, ...) NAME
+#define GET_MACRO_FE4(_1, _2, _3, _4, _5, NAME, ...) NAME
+
+// Overloaded macros
+#define TEST_FE(...)   GET_MACRO_FE(__VA_ARGS__, TEST_FE_IMPL, TEST_FE_DEFAULT)(__VA_ARGS__)
+#define TEST_FE2(...)  GET_MACRO_FE2(__VA_ARGS__, TEST_FE2_IMPL, TEST_FE2_DEFAULT)(__VA_ARGS__)
+#define TEST_FE3(...)  GET_MACRO_FE3(__VA_ARGS__, TEST_FE3_IMPL, TEST_FE3_DEFAULT)(__VA_ARGS__)
+#define TEST_FE4(...)  GET_MACRO_FE4(__VA_ARGS__, TEST_FE4_IMPL, TEST_FE4_DEFAULT)(__VA_ARGS__)
 
 #endif // DUNE_LOCALFUNCTIONS_TEST_TEST_LOCALFE_HH
