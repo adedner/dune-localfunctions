@@ -20,6 +20,7 @@ int main(int argc, char** argv)
   Dune::DualP1LocalFiniteElement<double,double,3> dualp13dlfem;
   TEST_FE(dualp13dlfem);
 
+  // DualQ1LocalFiniteElement does not support SIMD interpolation
   Dune::DualQ1LocalFiniteElement<double,double,1> dualq11dlfem;
   TEST_FE(dualq11dlfem);
 
