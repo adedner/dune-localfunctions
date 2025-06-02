@@ -21,7 +21,7 @@ namespace Dune
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      auto y = f(x);
+      decltype(f(x)) y;
       out.resize(18);
 
       //First the  vertex dofs

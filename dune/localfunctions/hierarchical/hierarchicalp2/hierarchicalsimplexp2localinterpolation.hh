@@ -21,7 +21,7 @@ namespace Dune
     void interpolate (const F& f, std::vector<C>& out) const
     {
       typename LB::Traits::DomainType x;
-      auto y = f(x);
+      decltype(f(x)) y;
 
       static_assert(LB::Traits::dimDomain <= 3,
                     "LocalInterpolation for HierarchicalSimplexP2 finite elements"
