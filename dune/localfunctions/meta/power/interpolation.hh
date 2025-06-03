@@ -33,7 +33,7 @@ namespace Dune {
 
   public:
     //! Export basis traits
-    typedef BasisTraits Traits;
+    using Traits = BasisTraits;
 
     //! Construct a PowerInterpolation
     /**
@@ -59,7 +59,7 @@ namespace Dune {
       auto operator()(const typename Backend::Traits::DomainLocal &x) const
       {
         auto fy = f(x);
-        typedef std::decay_t<decltype(fy)> FRangeType;
+        using FRangeType = std::decay_t<decltype(fy)>;
         Dune::FieldVector<typename FRangeType::field_type, 1> y;
         y[0] = fy[comp];
         return y;

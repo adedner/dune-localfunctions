@@ -23,14 +23,14 @@ namespace Dune
   template<class LB, unsigned int size>
   class MonomialLocalInterpolation
   {
-    typedef typename LB::Traits::DomainType D;
-    typedef typename LB::Traits::DomainFieldType DF;
+    using D = typename LB::Traits::DomainType;
+    using DF = typename LB::Traits::DomainFieldType;
     static const int dimD=LB::Traits::dimDomain;
-    typedef typename LB::Traits::RangeType R;
-    typedef typename LB::Traits::RangeFieldType RF;
+    using R = typename LB::Traits::RangeType;
+    using RF = typename LB::Traits::RangeFieldType;
 
-    typedef QuadratureRule<DF,dimD> QR;
-    typedef typename QR::iterator QRiterator;
+    using QR = QuadratureRule<DF,dimD>;
+    using QRiterator = typename QR::iterator;
 
   public:
     MonomialLocalInterpolation (const GeometryType &gt_,
@@ -72,7 +72,7 @@ namespace Dune
       for(QRiterator qrit = qr.begin(); qrit != qrend; ++qrit) {
         //TODO: mass matrix
         auto y = f(qrit->position());
-        typedef std::decay_t<decltype(y)> RangeType;
+        using RangeType = std::decay_t<decltype(y)>;
 
         std::vector<R> base;
         lb.evaluateFunction(qrit->position(),base);
