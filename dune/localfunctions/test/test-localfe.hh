@@ -900,48 +900,65 @@ bool testFE(const FE& fe,
 }
 
 // Some helper macros to call the tests
+// The tests can be called by the macros TEST_FE, ... , TEST_FE4 with 1 up to 4 arguments specified.
+// Each macro allows an additional optional argument V indicating whether the finite elmenent is virtualized or not,
+// i.e. whether the SIMD interpolation tests should be skipped or not. The argument V is then passed to the testFE
+// function as the second template argument.
+
+// TEST_FE macro with optional second argument V that is used as the second template argument for testFE
 #define TEST_FE_IMPL(A,V) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>,V>(A); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// interpolation tests are performed.
 #define TEST_FE_DEFAULT(A) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>>(A); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// TEST_FE2 macro with optional third argument V that is used as the second template argument for testFE
 #define TEST_FE2_IMPL(A,B,V) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>,V>(A,B); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// interpolation tests are performed.
 #define TEST_FE2_DEFAULT(A,B) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>>(A,B); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// TEST_FE3 macro with optional fourth argument V that is used as the second template argument for testFE
 #define TEST_FE3_IMPL(A,B,C,V) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>,V>(A,B,C); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// interpolation tests are performed.
 #define TEST_FE3_DEFAULT(A,B,C) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>>(A,B,C); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// TEST_FE4 macro with optional fifth argument V that is used as the second template argument for testFE
 #define TEST_FE4_IMPL(A,B,C,D,V) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>,V>(A,B,C,D); \
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
+// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// interpolation tests are performed.
 #define TEST_FE4_DEFAULT(A,B,C,D) { \
   std::cout << "start tests for " #A << std::endl; \
   bool b = testFE<std::decay_t<decltype(A)>>(A,B,C,D); \
@@ -955,7 +972,12 @@ bool testFE(const FE& fe,
 #define GET_MACRO_FE3(_1, _2, _3, _4, NAME, ...) NAME
 #define GET_MACRO_FE4(_1, _2, _3, _4, _5, NAME, ...) NAME
 
-// Overloaded macros
+// The macros TEST_FE, ... , TEST_FE4 take 1-4 arguments that are passed to the testFE function and an
+// optional further argument that indicates whether the finite element is virtualized or not that is passed
+// as the second template argument to the testFE function. If this argument is not given, it defaults to the
+// template parameter default value, that is false. Meaning by default the SIMD interpolation tests are performed
+// and to skip them one has to pass the additional argument true, i.e.
+// TEST_FE(myFE, true) will skip the SIMD interpolation whereas TEST_FE(myFE) will perform the SIMD interpolation tests.
 #define TEST_FE(...)   GET_MACRO_FE(__VA_ARGS__, TEST_FE_IMPL, TEST_FE_DEFAULT)(__VA_ARGS__)
 #define TEST_FE2(...)  GET_MACRO_FE2(__VA_ARGS__, TEST_FE2_IMPL, TEST_FE2_DEFAULT)(__VA_ARGS__)
 #define TEST_FE3(...)  GET_MACRO_FE3(__VA_ARGS__, TEST_FE3_IMPL, TEST_FE3_DEFAULT)(__VA_ARGS__)
