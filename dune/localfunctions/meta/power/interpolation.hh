@@ -6,7 +6,7 @@
 #ifndef DUNE_LOCALFUNCTIONS_META_POWER_INTERPOLATION_HH
 #define DUNE_LOCALFUNCTIONS_META_POWER_INTERPOLATION_HH
 
-#include "dune/common/fvector.hh"
+#include <dune/common/fvector.hh>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>

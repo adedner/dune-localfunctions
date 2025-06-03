@@ -13,7 +13,6 @@
  *  Dune versions.
  */
 
-#include "dune/common/simd/loop.hh"
 #include <cstddef>
 #include <cstdlib>
 #include <iomanip>
@@ -22,6 +21,7 @@
 #include <typeinfo>
 
 #include <dune/common/classname.hh>
+#include <dune/common/simd/loop.hh>
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/geometry/referenceelements.hh>
 
