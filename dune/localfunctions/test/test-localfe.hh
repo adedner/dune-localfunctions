@@ -912,7 +912,7 @@ bool testFE(const FE& fe,
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
-// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// If the optional argument is not given the default value of the template parameter is used, i.e. false, meaning the SIMD
 // interpolation tests are performed.
 #define TEST_FE_DEFAULT(A) { \
   std::cout << "start tests for " #A << std::endl; \
@@ -927,7 +927,7 @@ bool testFE(const FE& fe,
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
-// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// If the optional argument is not given the default value of the template parameter is used, i.e. false, meaning the SIMD
 // interpolation tests are performed.
 #define TEST_FE2_DEFAULT(A,B) { \
   std::cout << "start tests for " #A << std::endl; \
@@ -942,7 +942,7 @@ bool testFE(const FE& fe,
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
-// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// If the optional argument is not given the default value of the template parameter is used, i.e. false, meaning the SIMD
 // interpolation tests are performed.
 #define TEST_FE3_DEFAULT(A,B,C) { \
   std::cout << "start tests for " #A << std::endl; \
@@ -957,7 +957,7 @@ bool testFE(const FE& fe,
   std::cout << "testFE(" #A ") " << (b?"succeeded\n":"failed\n"); \
   success &= b;}
 
-// If the optional argument is not given the default value of teh template parameter is used, i.e. false, meaning the SIMD
+// If the optional argument is not given the default value of the template parameter is used, i.e. false, meaning the SIMD
 // interpolation tests are performed.
 #define TEST_FE4_DEFAULT(A,B,C,D) { \
   std::cout << "start tests for " #A << std::endl; \
