@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 
 #include <dune/common/dynmatrix.hh>
+#include <dune/common/simd/interface.hh>
+#include <dune/common/simd/loop.hh>
 #include <dune/localfunctions/nedelec/nedelecsimplex/nedelecsimplexbasis.hh>
 #include <dune/localfunctions/utility/field.hh>
 #include <dune/localfunctions/utility/basisprint.hh>
@@ -30,8 +32,9 @@
 typedef Dune::GMPField< 128 > StorageField;
 typedef Dune::GMPField< 512 > ComputeField;
 #else
-typedef double StorageField;
-typedef double ComputeField;
+using StorageField = double;
+using ComputeField = double;
+using SIMD = Dune::LoopSIMD<double, 4>;
 #endif
 
 template< Dune::GeometryType::Id geometryId >
@@ -57,6 +60,7 @@ bool test(unsigned int order)
 #endif // TEST_OUTPUT_FUNCTIONS
 
     // test interpolation
+    using std::abs;
     typedef Dune::NedelecL2InterpolationFactory<geometry.dim(), StorageField> InterpolationFactory;
     const typename InterpolationFactory::Object &interpol = *InterpolationFactory::template create<geometry>(o);
     Dune::DynamicMatrix<StorageField> matrix;
@@ -65,8 +69,20 @@ bool test(unsigned int order)
       matrix[i][i]-=1;
     for (unsigned int i=0; i<matrix.rows(); ++i)
       for (unsigned int j=0; j<matrix.cols(); ++j)
-        if ( std::abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
+        if ( abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
           std::cout << "  non-zero entry in interpolation matrix: "
+                    << "(" << i << "," << j << ") = " << Dune::field_cast<double>(matrix[i][j])
+                    << std::endl;
+
+    // test SIMD interpolation
+    Dune::DynamicMatrix<SIMD> simd_matrix;
+    interpol.interpolate(basis,simd_matrix);
+    for (unsigned int i=0; i<simd_matrix.rows(); ++i)
+      simd_matrix[i][i]-=1;
+    for (unsigned int i=0; i<simd_matrix.rows(); ++i)
+      for (unsigned int j=0; j<simd_matrix.cols(); ++j)
+        if ( Dune::Simd::anyTrue(abs( simd_matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon()) )
+          std::cout << "  non-zero entry in simd interpolation matrix: "
                     << "(" << i << "," << j << ") = " << Dune::field_cast<double>(matrix[i][j])
                     << std::endl;
 

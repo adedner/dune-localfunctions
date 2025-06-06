@@ -829,7 +829,6 @@ bool testFE(const FE& fe,
   if constexpr (not FEisVirtual)
     if (not (disabledTests & DisableSimdInterpolation))
     {
-      std::cout << "------- Testing SIMD interpolation -----------" << std::endl;
       success = testRandomInterpolation<FE,Dune::LoopSIMD<CT, 4>>(fe) and success;
     }
 
