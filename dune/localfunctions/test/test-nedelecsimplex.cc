@@ -29,8 +29,10 @@
  */
 
 #if HAVE_GMP
-typedef Dune::GMPField< 128 > StorageField;
-typedef Dune::GMPField< 512 > ComputeField;
+using StorageField = Dune::GMPField< 128 >;
+using ComputeField = Dune::GMPField< 512 >;
+using SIMD = Dune::LoopSIMD<StorageField, 4>;
+
 #else
 using StorageField = double;
 using ComputeField = double;
