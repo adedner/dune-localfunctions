@@ -762,7 +762,7 @@ bool testFE(const FE& fe,
   // Order of the quadrature rule used to generate test points
   unsigned int quadOrder = 2;
 
-  typedef typename FE::Traits::LocalBasisType::Traits::RangeType::field_type CT;
+  using CT = typename FE::Traits::LocalBasisType::Traits::RangeType::field_type;
 
   bool success = true;
 
@@ -829,7 +829,6 @@ bool testFE(const FE& fe,
   if constexpr (not FEisVirtual)
     if (not (disabledTests & DisableSimdInterpolation))
     {
-      std::cout << "------- Testing SIMD interpolation -----------" << std::endl;
       success = testRandomInterpolation<FE,Dune::LoopSIMD<CT, 4>>(fe) and success;
     }
 

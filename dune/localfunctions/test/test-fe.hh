@@ -270,7 +270,6 @@ bool testFE(const Geo &geo, const FE& fe, double eps, double delta,
   success = testInterpolation<FE>(fe, eps) and success;
 
   if constexpr (CheckSIMD) {
-    std::cout << "Testing SIMD" << std::endl;
     typedef typename FE::Traits::Basis::Traits::RangeField CT;
     success = testInterpolation<FE, Dune::LoopSIMD<CT, 4>>(fe, eps) and success;
   }
