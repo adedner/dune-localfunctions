@@ -30,10 +30,10 @@ static void Order(int &result)
       std::cout << "== Checking global-valued monomial elements (with "
                 << "dim=" << dim << ", p=" << p << ")" << std::endl;
 
-      typedef TestGeometries<double, dim> TestGeos;
+      using TestGeos = TestGeometries<double, dim>;
       static const TestGeos testGeos;
 
-      typedef typename TestGeos::Geometry Geometry;
+      using Geometry = typename TestGeos::Geometry;
       Dune::MonomialFiniteElementFactory<Geometry, double, p> feFactory;
 
       for(std::size_t i = 0; i < testGeos.size(); ++i) {
@@ -41,7 +41,9 @@ static void Order(int &result)
 
         std::cout << "=== GeometryType " << geo.type() << std::endl;
 
-        bool success = testFE(geo, feFactory.make(geo), eps, delta);
+        auto fe = feFactory.make(geo);
+        using FE = std::decay_t<decltype(fe)>;
+        bool success = testFE<Geometry,FE,true>(geo, fe, eps, delta);
 
         if(success && result != 1)
           result = 0;

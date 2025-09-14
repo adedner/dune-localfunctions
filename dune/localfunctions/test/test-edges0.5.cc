@@ -14,6 +14,7 @@
 #include <dune/geometry/generalvertexorder.hh>
 
 #include <dune/localfunctions/whitney/edges0.5.hh>
+#include <type_traits>
 
 #include "geometries.hh"
 #include "test-fe.hh"
@@ -42,7 +43,9 @@ void testEdgeS0_5(int &result) {
   vo(gt, vertexIds+0, vertexIds+dim+1);
 
   Dune::EdgeS0_5FiniteElementFactory<Geometry, double> feFactory;
-  bool success = testFE(geo, feFactory.make(geo, vo), eps, delta);
+  auto fe = feFactory.make(geo, vo);
+  typedef std::decay_t<decltype(fe)> FE;
+  bool success = testFE<Geometry,FE,true>(geo, fe, eps, delta);
 
   if(success && result != 1)
     result = 0;

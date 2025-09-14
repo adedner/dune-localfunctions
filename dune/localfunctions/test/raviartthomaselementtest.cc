@@ -19,14 +19,15 @@ int main(int argc, char** argv)
 {
   bool success = true;
 
+  // SIMD Interpolation does not work for Simplex elements
   Dune::RaviartThomasSimplexLocalFiniteElement<2,double,double> rt0simplex2dlfem(Dune::GeometryTypes::simplex(2),0);
-  TEST_FE3(rt0simplex2dlfem, DisableNone, 2);
+  TEST_FE3(rt0simplex2dlfem, DisableSimdInterpolation, 2);
 
   Dune::RaviartThomasSimplexLocalFiniteElement<2,double,double> rt1simplex2dlfem(Dune::GeometryTypes::simplex(2),1);
-  TEST_FE3(rt1simplex2dlfem, DisableNone,2);
+  TEST_FE3(rt1simplex2dlfem, DisableSimdInterpolation,2);
 
   Dune::RaviartThomasSimplexLocalFiniteElement<3,double,double> rt0simplex3dlfem(Dune::GeometryTypes::simplex(3),0);
-  TEST_FE3(rt0simplex3dlfem,DisableNone,2);
+  TEST_FE3(rt0simplex3dlfem,DisableSimdInterpolation,2);
 
   Dune::RaviartThomasCubeLocalFiniteElement<double,double,2,0> rt0cube2dlfem;
   TEST_FE(rt0cube2dlfem);
