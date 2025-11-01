@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 
 #include <dune/common/dynmatrix.hh>
+#include <dune/common/simd/loop.hh>
 #include <dune/localfunctions/raviartthomas/raviartthomassimplex/raviartthomassimplexbasis.hh>
 #include <dune/localfunctions/utility/field.hh>
 #include <dune/localfunctions/utility/basisprint.hh>
@@ -28,11 +29,13 @@
  */
 
 #if HAVE_GMP
-typedef Dune::GMPField< 128 > StorageField;
-typedef Dune::GMPField< 512 > ComputeField;
+using StorageField = Dune::GMPField< 128 >;
+using ComputeField = Dune::GMPField< 512 >;
+using SIMD = Dune::LoopSIMD<StorageField, 4>;
 #else
-typedef double StorageField;
-typedef double ComputeField;
+using StorageField = double;
+using ComputeField = double;
+using SIMD = Dune::LoopSIMD<double, 4>;
 #endif
 
 template< Dune::GeometryType::Id geometryId >
@@ -44,7 +47,7 @@ bool test(unsigned int order)
   for (unsigned int o = 0; o <= order; ++o)
   {
     std::cout << "Testing " << geometry << " with order " << o << std::endl;
-    typedef Dune::RaviartThomasBasisFactory<geometry.dim(),StorageField,ComputeField> BasisFactory;
+    using BasisFactory = Dune::RaviartThomasBasisFactory<geometry.dim(),StorageField,ComputeField>;
     const typename BasisFactory::Object &basis = *BasisFactory::template create<geometry>(o);
 
     // define the macro TEST_OUTPUT_FUNCTIONS to output files containing functions and
@@ -58,7 +61,8 @@ bool test(unsigned int order)
 #endif // TEST_OUTPUT_FUNCTIONS
 
     // test interpolation
-    typedef Dune::RaviartThomasL2InterpolationFactory<geometry.dim(),StorageField> InterpolationFactory;
+    using std::abs;
+    using InterpolationFactory = Dune::RaviartThomasL2InterpolationFactory<geometry.dim(),StorageField>;
     const typename InterpolationFactory::Object &interpol = *InterpolationFactory::template create<geometry>(o);
     Dune::DynamicMatrix<StorageField> matrix;
     interpol.interpolate(basis,matrix);
@@ -66,8 +70,20 @@ bool test(unsigned int order)
       matrix[i][i]-=1;
     for (unsigned int i=0; i<matrix.rows(); ++i)
       for (unsigned int j=0; j<matrix.cols(); ++j)
-        if ( std::abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
+        if ( abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
           std::cout << "  non-zero entry in interpolation matrix: "
+                    << "(" << i << "," << j << ") = " << Dune::field_cast<double>(matrix[i][j])
+                    << std::endl;
+
+    // test SIMD interpolation
+    Dune::DynamicMatrix<SIMD> simd_matrix;
+    interpol.interpolate(basis,simd_matrix);
+    for (unsigned int i=0; i<simd_matrix.rows(); ++i)
+      simd_matrix[i][i]-=1;
+    for (unsigned int i=0; i<simd_matrix.rows(); ++i)
+      for (unsigned int j=0; j<simd_matrix.cols(); ++j)
+        if ( Dune::Simd::anyTrue(abs( simd_matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon()) )
+          std::cout << "  non-zero entry in simd interpolation matrix: "
                     << "(" << i << "," << j << ") = " << Dune::field_cast<double>(matrix[i][j])
                     << std::endl;
 

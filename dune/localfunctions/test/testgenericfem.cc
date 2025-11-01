@@ -184,6 +184,7 @@ int main(int argc, char** argv) try
     onbPrism(Dune::GeometryTypes::prism, order);
     TEST_FE(onbPrism);
   }
+
   std::cout << "Testing RaviartThomasSimplexFiniteElement on 3d"
             << " simplex elements with double precision" << std::endl;
   for (unsigned int order : {0, 1, 4})

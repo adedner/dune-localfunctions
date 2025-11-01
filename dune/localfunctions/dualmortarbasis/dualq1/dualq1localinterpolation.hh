@@ -54,7 +54,7 @@ namespace Dune
       out.resize(size);
 
       // solve a linear system to compute the dual coefficients
-      Dune::FieldMatrix<C,size,size> mat;
+      Dune::FieldMatrix<typename LB::Traits::RangeFieldType,size,size> mat;
 
       for (int i=0; i<size; i++)
         for (int j=0; j<size; j++)
