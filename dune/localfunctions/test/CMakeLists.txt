@@ -106,3 +106,5 @@ dune_add_test(NAME test-nedelecsimplex2
 dune_add_test(NAME test-nedelecsimplex3
               SOURCES test-nedelecsimplex.cc
               COMPILE_DEFINITIONS "CHECKDIM=3")
+
+dune_add_test(SOURCES test-product.cc)
