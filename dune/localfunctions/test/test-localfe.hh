@@ -30,6 +30,39 @@ double TOL = 1e-9;
 // precision -- so we have to be a little bit more tolerant here.
 double jacobianTOL = 1e-5;  // sqrt(TOL)
 
+// This class wraps one shape function of a local finite element as a function
+// that can be feed to the LocalInterpolation::interpolate method.
+template<class FE>
+class ShapeFunctionAsFunction
+{
+public:
+  typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+
+  struct Traits {
+    typedef typename FE::Traits::LocalBasisType::Traits::DomainType DomainType;
+    typedef typename FE::Traits::LocalBasisType::Traits::RangeType RangeType;
+  };
+
+  typedef typename FE::Traits::LocalBasisType::Traits::RangeFieldType CT;
+
+  ShapeFunctionAsFunction(const FE& fe, int shapeFunction) :
+    fe_(fe),
+    shapeFunction_(shapeFunction)
+  {}
+
+  void evaluate (const DomainType& x, RangeType& y) const
+  {
+    std::vector<RangeType> yy;
+    fe_.localBasis().evaluateFunction(x, yy);
+    y = yy[shapeFunction_];
+  }
+
+private:
+  const FE& fe_;
+  int shapeFunction_;
+};
+
 // This class wraps one shape function of a local finite element as a callable
 // that can be fed to the LocalInterpolation::interpolate method.
 template<class FE>
