@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
 
 #include <iostream>
+#include <type_traits>
 #include <typeinfo>
 #include <fenv.h>
 
@@ -141,9 +142,10 @@ int main (int argc, char *argv[])
     auto vvlfe = Dune::LocalFiniteElementVirtualImp<decltype(vlfe)>(vlfe);
     const auto& ilfe = static_cast<const Interface&>(vlfe);
     testSuite.check(testFE(lfe, args...)) << "Check of raw local finite element";
-    testSuite.check(testFE(vlfe, args...)) << "Check of virtualized local finite element";
-    testSuite.check(testFE(vvlfe, args...)) << "Check of double virtualized local finite element";
-    testSuite.check(testFE(ilfe, args...)) << "Check of virtualized local finite element via interface";
+    // Tell testFE that LFE is virtualized and therefore currently SIMD interpolation is not supported
+    testSuite.check(testFE<decltype(vlfe),true>(vlfe, args...)) << "Check of virtualized local finite element";
+    testSuite.check(testFE<decltype(vvlfe),true>(vvlfe, args...)) << "Check of double virtualized local finite element";
+    testSuite.check(testFE<std::decay_t<decltype(ilfe)>,true>(ilfe, args...)) << "Check of virtualized local finite element via interface";
     return testSuite;
   };
 

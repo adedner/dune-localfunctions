@@ -7,6 +7,7 @@
 #define DUNE_LOCALFUNCTIONS_WHITNEY_EDGES0_5_INTERPOLATION_HH
 
 #include <cstddef>
+#include <type_traits>
 #include <vector>
 
 #include <dune/localfunctions/whitney/edges0.5/common.hh>
@@ -73,7 +74,8 @@ namespace Dune {
     //! Interpolation of a function
     template<typename F, typename C>
     void interpolate(const F& f, std::vector<C>& out) const {
-      typename Traits::Range y;
+      typedef std::decay_t<decltype(f(refelem.position(0,dim-1)))> RangeType;
+      RangeType y;
 
       out.resize(s);
 

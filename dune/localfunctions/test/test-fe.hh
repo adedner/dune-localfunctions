@@ -22,6 +22,8 @@
 
 #include <dune/common/classname.hh>
 #include <dune/common/fmatrix.hh>
+#include <dune/common/simd/simd.hh>
+#include <dune/common/simd/loop.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 
@@ -30,18 +32,17 @@
 // representing the local basis and a coefficient vector.
 // This provides the evaluate method needed by the interpolate()
 // method.
-template<class FE>
+template<class FE, class R>
 class FEFunction
 {
   const FE& fe;
 
 public:
-  using RangeType = typename FE::Traits::Basis::Traits::Range;
+  using RangeType = R;
+  using BasisRangeType = typename FE::Traits::Basis::Traits::Range;
   using DomainType = typename FE::Traits::Basis::Traits::DomainLocal;
 
-  typedef typename FE::Traits::Basis::Traits::RangeField CT;
-
-  std::vector<CT> coeff;
+  std::vector<R> coeff;
 
   FEFunction(const FE& fe_) : fe(fe_) { resetCoefficients(); }
 
@@ -54,16 +55,17 @@ public:
   void setRandom(double max) {
     coeff.resize(fe.basis().size());
     for(std::size_t i=0; i<coeff.size(); ++i)
-      coeff[i] = ((1.0*std::rand()) / RAND_MAX - 0.5)*2.0*max;
+      for(std::size_t l = 0; l < Dune::Simd::lanes(coeff[i]); ++l)
+        Dune::Simd::lane(l,coeff[i][0]) = ((1.0*std::rand()) / RAND_MAX - 0.5)*2.0*max;
   }
 
   RangeType operator() (const DomainType& x) const {
     RangeType y;
-    std::vector<RangeType> yy;
+    std::vector<BasisRangeType> yy;
     fe.basis().evaluateFunction(x, yy);
     y = 0.0;
     for (std::size_t i=0; i<yy.size(); ++i)
-      y.axpy(coeff[i], yy[i]);
+      y.axpy(coeff[i][0], yy[i]);
     return y;
   }
 
@@ -82,13 +84,17 @@ public:
  * \param eps Tolerance when comparing floating-point values
  * \param n   Number of times to run the check.
  */
-template<class FE>
+template<class FE, class RangeFieldType = typename FE::Traits::Basis::Traits::Range::field_type>
 bool testInterpolation(const FE& fe, double eps, int n=5)
 {
-  bool success = true;
-  FEFunction<FE> f(fe);
+  using std::abs;
+  using std::max;
 
-  std::vector<typename FEFunction<FE>::CT> coeff;
+  bool success = true;
+  using BasisRangeType = typename FE::Traits::Basis::Traits::Range;
+  using CoeffType = Dune::FieldVector<RangeFieldType, BasisRangeType::dimension>;
+  FEFunction<FE, CoeffType> f(fe);
+  std::vector<CoeffType> coeff;
   for(int i=0; i<n && success; ++i) {
     // Set random coefficient vector
     f.setRandom(100);
@@ -116,14 +122,14 @@ bool testInterpolation(const FE& fe, double eps, int n=5)
 
     // Check if interpolation weights are equal to coefficients
     for(std::size_t j=0; j<coeff.size() && success; ++j) {
-      if ( std::abs(coeff[j]-f.coeff[j]) >
-           (2*coeff.size()*eps)*(std::max(std::abs(f.coeff[j]), 1.0)) )
+      if ( Dune::Simd::anyTrue(abs(coeff[j][0]-f.coeff[j][0]) >
+                               (2*coeff.size()*eps)*(max(abs(f.coeff[j][0]), RangeFieldType(1.0))) ))
       {
         std::cout << std::setprecision(16);
         std::cout << "Bug in LocalInterpolation for finite element type "
                   << Dune::className<FE>() << ":" << std::endl;
         std::cout << "    Interpolation weight " << j << " differs by "
-                  << std::abs(coeff[j]-f.coeff[j]) << " from coefficient of "
+                  << abs(coeff[j][0]-f.coeff[j][0]) << " from coefficient of "
                   << "linear combination." << std::endl;
         std::cout << std::endl;
         success = false;
@@ -255,13 +261,21 @@ bool testJacobian(const Geo &geo, const FE& fe, double eps, double delta,
 }
 
 // call tests for given finite element
-template<class Geo, class FE>
+template<class Geo, class FE, bool CheckSIMD = false>
 bool testFE(const Geo &geo, const FE& fe, double eps, double delta,
             unsigned order = 2)
 {
   bool success = true;
 
-  success = testInterpolation(fe, eps) and success;
+  success = testInterpolation<FE>(fe, eps) and success;
+
+  if constexpr (CheckSIMD) {
+    typedef typename FE::Traits::Basis::Traits::RangeField CT;
+    success = testInterpolation<FE, Dune::LoopSIMD<CT, 4>>(fe, eps) and success;
+  }
+
+  std::cout << "Interpolation test? " << (success ? "Success!" : "Failed!") << std::endl;
+
   success = testJacobian(geo, fe, eps, delta, order) and success;
 
   return success;

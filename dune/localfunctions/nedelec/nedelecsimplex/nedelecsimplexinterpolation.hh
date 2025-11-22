@@ -6,10 +6,12 @@
 #define DUNE_LOCALFUNCTIONS_NEDELEC_NEDELECSIMPLEX_NEDELECSIMPLEXINTERPOLATION_HH
 
 #include <fstream>
+#include <type_traits>
 #include <utility>
 #include <numeric>
 
 #include <dune/common/exceptions.hh>
+#include <dune/common/ftraits.hh>
 
 #include <dune/geometry/quadraturerules.hh>
 #include <dune/geometry/referenceelements.hh>
@@ -39,7 +41,7 @@ namespace Dune
 
   class LocalCoefficientsContainer
   {
-    typedef LocalCoefficientsContainer This;
+    using This = LocalCoefficientsContainer;
 
   public:
     template <class Setter>
@@ -71,13 +73,13 @@ namespace Dune
   template < unsigned int dim >
   struct NedelecCoefficientsFactory
   {
-    typedef std::size_t Key;
-    typedef const LocalCoefficientsContainer Object;
+    using Key = std::size_t;
+    using Object = const LocalCoefficientsContainer;
 
     template< GeometryType::Id geometryId >
     static Object *create( const Key &key )
     {
-      typedef NedelecL2InterpolationFactory< dim, double > InterpolationFactory;
+      using InterpolationFactory = NedelecL2InterpolationFactory< dim, double >;
       if( !supports< geometryId >( key ) )
         return nullptr;
       typename InterpolationFactory::Object *interpolation = InterpolationFactory::template create< geometryId >( key );
@@ -115,23 +117,23 @@ namespace Dune
     static const unsigned int dimension = dim;
 
     // for the dofs associated to the element
-    typedef OrthonormalBasisFactory< dimension, Field, Field, Field > TestBasisFactory;
-    typedef typename TestBasisFactory::Object TestBasis;
+    using TestBasisFactory = OrthonormalBasisFactory< dimension, Field, Field, Field >;
+    using TestBasis = typename TestBasisFactory::Object;
 
     // for the dofs associated to the faces
-    typedef OrthonormalBasisFactory< dimension-1, Field, Field, Field > TestFaceBasisFactory;
-    typedef typename TestFaceBasisFactory::Object TestFaceBasis;
+    using TestFaceBasisFactory = OrthonormalBasisFactory< dimension-1, Field, Field, Field >;
+    using TestFaceBasis = typename TestFaceBasisFactory::Object;
 
     // for the dofs associated to the edges
-    typedef OrthonormalBasisFactory< 1, Field, Field, Field > TestEdgeBasisFactory;
-    typedef typename TestEdgeBasisFactory::Object TestEdgeBasis;
+    using TestEdgeBasisFactory = OrthonormalBasisFactory< 1, Field, Field, Field >;
+    using TestEdgeBasis = typename TestEdgeBasisFactory::Object;
 
     // the tangent of the edges
-    typedef FieldVector< Field, dimension > Tangent;
+    using Tangent = FieldVector< Field, dimension >;
 
     // the normal and the tangents of the faces
-    typedef FieldVector< Field, dimension > Normal;
-    typedef std::array<FieldVector< Field, dimension >,dim-1> FaceTangents;
+    using Normal = FieldVector< Field, dimension >;
+    using FaceTangents = std::array<FieldVector< Field, dimension >,dim-1>;
 
     NedelecL2InterpolationBuilder () = default;
 
@@ -362,13 +364,13 @@ namespace Dune
   class NedelecL2Interpolation
     : public InterpolationHelper< F ,dimension >
   {
-    typedef NedelecL2Interpolation< dimension, F > This;
-    typedef InterpolationHelper<F,dimension> Base;
+    using This = NedelecL2Interpolation< dimension, F >;
+    using Base = InterpolationHelper<F,dimension>;
 
   public:
-    typedef F Field;
-    typedef NedelecL2InterpolationBuilder<dimension,Field> Builder;
-    typedef typename Builder::FaceTangents FaceTangents;
+    using Field = F;
+    using Builder = NedelecL2InterpolationBuilder<dimension,Field>;
+    using FaceTangents = typename Builder::FaceTangents;
 
     NedelecL2Interpolation()
       : order_(0),
@@ -461,8 +463,8 @@ namespace Dune
       unsigned int row = 0;
 
       // edge dofs:
-      typedef Dune::QuadratureRule<Field, 1> EdgeQuadrature;
-      typedef Dune::QuadratureRules<Field, 1> EdgeQuadratureRules;
+      using EdgeQuadrature = Dune::QuadratureRule<Field, 1>;
+      using EdgeQuadratureRules = Dune::QuadratureRules<Field, 1>;
 
       const auto &refElement = Dune::ReferenceElements< Field, dimension >::general( geoType );
 
@@ -495,8 +497,8 @@ namespace Dune
       }
 
       // face dofs:
-      typedef Dune::QuadratureRule<Field, dimension-1> FaceQuadrature;
-      typedef Dune::QuadratureRules<Field, dimension-1> FaceQuadratureRules;
+      using FaceQuadrature = Dune::QuadratureRule<Field, dimension-1>;
+      using FaceQuadratureRules = Dune::QuadratureRules<Field, dimension-1>;
 
       for (unsigned int f=0; f<builder_.faceSize(); ++f)
       {
@@ -534,8 +536,8 @@ namespace Dune
       {
         testBasisVal.resize(builder_.testBasis()->size());
 
-        typedef Dune::QuadratureRule<Field, dimension> Quadrature;
-        typedef Dune::QuadratureRules<Field, dimension> QuadratureRules;
+        using Quadrature = Dune::QuadratureRule<Field, dimension>;
+        using QuadratureRules = Dune::QuadratureRules<Field, dimension>;
         const Quadrature &elemQuad = QuadratureRules::rule( geoType, 2*order_+1 );
 
         const unsigned int quadratureSize = elemQuad.size();
@@ -576,7 +578,7 @@ namespace Dune
       typename NedVal::const_iterator nedIter = nedVal.begin();
       for ( unsigned int col = 0; col < nedVal.size() ; ++nedIter,++col)
       {
-        Field cFactor = (*nedIter)*tangent;
+        auto cFactor = (*nedIter)*tangent;
         typename MVal::const_iterator mIter = mVal.begin();
         for (unsigned int row = startRow; row!=endRow; ++mIter, ++row )
           matrix.add(row,col, (weight*cFactor)*(*mIter) );
@@ -610,7 +612,8 @@ namespace Dune
       {
         auto const& u=*nedIter;
         auto const& n=normal;
-        FieldVector<Field,dimension> nedTimesNormal = { u[1]*n[2]-u[2]*n[1],
+        using FieldType = typename FieldTraits<std::decay_t<decltype(u)>>::field_type;
+        FieldVector<FieldType,dimension> nedTimesNormal = { u[1]*n[2]-u[2]*n[1],
                                                         u[2]*n[0]-u[0]*n[2],
                                                         u[0]*n[1]-u[1]*n[0]};
         typename MVal::const_iterator mIter = mVal.begin();
@@ -665,10 +668,10 @@ namespace Dune
   template < unsigned int dim, class Field >
   struct NedelecL2InterpolationFactory
   {
-    typedef NedelecL2InterpolationBuilder<dim,Field> Builder;
-    typedef const NedelecL2Interpolation<dim,Field> Object;
-    typedef std::size_t Key;
-    typedef typename std::remove_const<Object>::type NonConstObject;
+    using Builder = NedelecL2InterpolationBuilder<dim,Field>;
+    using Object = const NedelecL2Interpolation<dim,Field>;
+    using Key = std::size_t;
+    using NonConstObject = typename std::remove_const<Object>::type;
 
     template <GeometryType::Id geometryId>
     static Object *create( const Key &key )

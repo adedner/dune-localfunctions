@@ -31,7 +31,9 @@ void test(const double& eps, const double& delta, int& result)
   const Geometry &geo = testGeos.get(gt);
 
   Dune::Q2FiniteElementFactory<Geometry, double> feFactory;
-  bool success = testFE(geo, feFactory.make(geo), eps, delta);
+  auto fe = feFactory.make(geo);
+  typedef decltype(fe) FE;
+  bool success = testFE<Geometry,FE,true>(geo, fe, eps, delta);
 
   if(success && result != 1)
     result = 0;

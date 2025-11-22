@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <iostream>
 #include <ostream>
+#include <type_traits>
 #include <utility>
 
 #include <dune/common/exceptions.hh>
@@ -44,7 +45,9 @@ static void test(int &result)
     vo(gt, vertexIds+0, vertexIds+3);
 
     Dune::Pk2DFiniteElementFactory<Geometry, double, k> feFactory;
-    bool success = testFE(geo, feFactory.make(geo, vo), eps, delta);
+    auto fe = feFactory.make(geo, vo);
+    typedef std::decay_t<decltype(fe)> FE;
+    bool success = testFE<Geometry,FE,true>(geo, feFactory.make(geo, vo), eps, delta);
 
     if(success && result != 1)
       result = 0;

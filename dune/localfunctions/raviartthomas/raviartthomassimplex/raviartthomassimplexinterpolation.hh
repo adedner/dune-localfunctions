@@ -370,7 +370,7 @@ namespace Dune
       typename RTVal::const_iterator rtiter = rtVal.begin();
       for ( unsigned int col = 0; col < rtVal.size() ; ++rtiter,++col)
       {
-        Field cFactor = (*rtiter)*normal;
+        auto cFactor = (*rtiter)*normal;
         typename MVal::const_iterator miter = mVal.begin();
         for (unsigned int row = startRow;
              row!=endRow; ++miter, ++row )
