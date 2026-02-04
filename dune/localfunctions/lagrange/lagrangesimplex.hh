@@ -8,6 +8,7 @@
 #include <array>
 #include <numeric>
 #include <algorithm>
+#include <span>
 
 #include <dune/common/exceptions.hh>
 #include <dune/common/fmatrix.hh>
@@ -15,6 +16,7 @@
 #include <dune/common/hybridutilities.hh>
 #include <dune/common/math.hh>
 #include <dune/common/rangeutilities.hh>
+#include <dune/common/std/mdarray.hh>
 
 #include <dune/geometry/referenceelements.hh>
 
@@ -24,7 +26,7 @@
 
 namespace Dune { namespace Impl
 {
-  template <unsigned int dim, int k>
+  template<unsigned int dim, int k>
   struct LagrangeSimplexTraits
   {
     static constexpr bool is_static_order = (k>=0);
@@ -45,7 +47,7 @@ namespace Dune { namespace Impl
   };
 
 
-  template <unsigned int dim>
+  template<unsigned int dim>
   struct LagrangeSimplexTraits<dim,-1>
   {
     int k_;
@@ -71,6 +73,37 @@ namespace Dune { namespace Impl
     }
   };
 
+  template<class D, class R, unsigned int dim, int k>
+  struct LagrangeSimplexLocalBasisCaches
+  {
+    constexpr LagrangeSimplexLocalBasisCaches(int order = k) {}
+
+    using L1Type = Std::mdarray<R,Std::extents<int,dim+1,k+1>>;
+    mutable L1Type L1_{};
+
+    // return the ith row of the L1_ matrix as a span
+    auto L1(int i) const
+    {
+      return std::span<R,L1Type::static_extent(0)>(L1_.container_data() + i*L1_.extent(1), L1_.extent(0));
+    }
+  };
+
+  template<class D, class R, unsigned int dim>
+  struct LagrangeSimplexLocalBasisCaches<D,R,dim,-1>
+  {
+    constexpr LagrangeSimplexLocalBasisCaches(int order)
+      : L1_(order+1)
+    {}
+
+    using L1Type = Std::mdarray<R,Std::extents<int,dim+1,std::dynamic_extent>>;
+    mutable L1Type L1_;
+
+    // return the ith row of the L1_ matrix as a span
+    auto L1(int i) const
+    {
+      return std::span<R,L1Type::static_extent(0)>(L1_.container_data() + i*L1_.extent(1), L1_.extent(0));
+    }
+  };
 
    /** \brief Lagrange shape functions of arbitrary order on the reference simplex
 
@@ -85,21 +118,27 @@ namespace Dune { namespace Impl
   template<class D, class R, unsigned int dim, int k>
   class LagrangeSimplexLocalBasis
     : public LagrangeSimplexTraits<dim,k>
+    , private LagrangeSimplexLocalBasisCaches<D,R,dim,k>
   {
     template <class> friend class LagrangeSimplexLocalInterpolation;
 
     using Base = LagrangeSimplexTraits<dim,k>;
+    using Caches = LagrangeSimplexLocalBasisCaches<D,R,dim,k>;
     static constexpr bool is_static_order = Base::is_static_order;
 
 public:
     constexpr LagrangeSimplexLocalBasis(int order = k)
       : Base(order)
+      , Caches(order)
     {}
 
     using Base::order;
     using Base::size;
 
 private:
+
+    using Caches::L1_;
+    using Caches::L1;
 
     // Compute the rescaled barycentric coordinates of x.
     // We rescale the simplex by k and then compute the
@@ -124,7 +163,7 @@ private:
     //
     // L_i(t) = (t-0)/(i-0) * ... * (t-(i-1))/(i-(i-1))
     //        = (t-0)*...*(t-(i-1))/(i!);
-    static constexpr void evaluateLagrangePolynomials(const R& t, auto& L, int k_val)
+    static constexpr void evaluateLagrangePolynomials(const R& t, auto&& L, int k_val)
     {
       L[0] = 1;
       for (auto i : Dune::range(k_val))
@@ -236,26 +275,15 @@ private:
       // Compute rescaled barycentric coordinates of x
       auto z = barycentric(x);
 
-      auto L = [&]{
-        if constexpr(is_static_order)
-          return std::array<std::array<R,k+1>, dim+1>{};
-        else {
-          auto L = std::array<std::vector<R>, dim + 1>();
-          for (auto& Lj : L)
-              Lj.resize(k_val + 1);
-          return L;
-        }
-      }();
-
       for (auto j : Dune::range(dim+1))
-        evaluateLagrangePolynomials(z[j], L[j], k_val);
+        evaluateLagrangePolynomials(z[j], L1(j), k_val);
 
       if (dim==1)
       {
         unsigned int n = 0;
         for (auto i0 : Dune::range(k_val + 1))
           for (auto i1 : std::array{k_val - i0})
-            out[n++] = L[0][i0] * L[1][i1];
+            out[n++] = L1_(0,i0) * L1_(1,i1);
         return;
       }
       if (dim==2)
@@ -264,7 +292,7 @@ private:
         for (auto i1 : Dune::range(k_val + 1))
           for (auto i0 : Dune::range(k_val - i1 + 1))
             for (auto i2 : std::array{k_val - i1 - i0})
-              out[n++] = L[0][i0] * L[1][i1] * L[2][i2];
+              out[n++] = L1_(0,i0) * L1_(1,i1) * L1_(2,i2);
         return;
       }
       if (dim==3)
@@ -274,7 +302,7 @@ private:
           for (auto i1 : Dune::range(k_val - i2 + 1))
             for (auto i0 : Dune::range(k_val - i2 - i1 + 1))
               for (auto i3 : std::array{k_val - i2 - i1 - i0})
-                out[n++] = L[0][i0] * L[1][i1]  * L[2][i2] * L[3][i3];
+                out[n++] = L1_(0,i0) * L1_(1,i1)  * L1_(2,i2) * L1_(3,i3);
         return;
       }
 
