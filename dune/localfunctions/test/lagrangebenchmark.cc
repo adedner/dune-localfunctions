@@ -19,6 +19,8 @@
 // #include <dune/localfunctions/lagrange/dynlagrangesimplex.hh>
 #include <dune/localfunctions/lagrange/lagrangelfecache.hh>
 #include <dune/localfunctions/lagrange/lagrangesimplex.hh>
+#include <dune/localfunctions/lagrange/lagrangesimplex1.hh>
+#include <dune/localfunctions/lagrange/lagrangesimplex2.hh>
 #include <dune/localfunctions/lagrange/lagrangesimplexold.hh>
 
 #include <dune/localfunctions/test/test-localfe.hh>
@@ -52,6 +54,34 @@ bool benchmark(std::ostream& out, int max_iter = 10)
       out << "Time(static order) = " << t.elapsed()/max_iter << std::endl;
     }
 
+    { // 1. static Lagrange bases
+      auto lfe = Dune::unpackIntegerSequence([&](auto... i) {
+        return std::make_tuple(LagrangeSimplexLocalFiniteElement1<double,double,dim,i+1>{}...);
+      }, std::make_index_sequence<max_order-1>{});
+
+      t.reset();
+      for (int iter = 0; iter < max_iter; ++iter) {
+        Hybrid::forEach(lfe,[&success](auto& pklfem) {
+          success &= testFE(pklfem);
+        });
+      }
+      out << "Time(static order 1) = " << t.elapsed()/max_iter << std::endl;
+    }
+
+    { // 1. static Lagrange bases
+      auto lfe = Dune::unpackIntegerSequence([&](auto... i) {
+        return std::make_tuple(LagrangeSimplexLocalFiniteElement2<double,double,dim,i+1>{}...);
+      }, std::make_index_sequence<max_order-1>{});
+
+      t.reset();
+      for (int iter = 0; iter < max_iter; ++iter) {
+        Hybrid::forEach(lfe,[&success](auto& pklfem) {
+          success &= testFE(pklfem);
+        });
+      }
+      out << "Time(static order 2) = " << t.elapsed()/max_iter << std::endl;
+    }
+
     { // 4. old static Lagrange bases
       auto lfe = Dune::unpackIntegerSequence([&](auto... i) {
         return std::make_tuple(LagrangeSimplexLocalFiniteElementOld<double,double,dim,i+1>{}...);
@@ -79,6 +109,36 @@ bool benchmark(std::ostream& out, int max_iter = 10)
         }
       }
       out << "Time(dynamic order) = " << t.elapsed()/max_iter << std::endl;
+    }
+
+    { // 2. dynamic version of the static Lagrange bases
+      std::vector<LagrangeSimplexLocalFiniteElement1<double,double,dim>> lfe;
+      for (unsigned int i = 1; i < max_order; ++i) {
+        lfe.emplace_back(i);
+      }
+
+      t.reset();
+      for (int iter = 0; iter < max_iter; ++iter) {
+        for (auto& pklfem : lfe) {
+          success &= testFE(pklfem);
+        }
+      }
+      out << "Time(dynamic order 1) = " << t.elapsed()/max_iter << std::endl;
+    }
+
+    { // 2. dynamic version of the static Lagrange bases
+      std::vector<LagrangeSimplexLocalFiniteElement2<double,double,dim>> lfe;
+      for (unsigned int i = 1; i < max_order; ++i) {
+        lfe.emplace_back(i);
+      }
+
+      t.reset();
+      for (int iter = 0; iter < max_iter; ++iter) {
+        for (auto& pklfem : lfe) {
+          success &= testFE(pklfem);
+        }
+      }
+      out << "Time(dynamic order 2) = " << t.elapsed()/max_iter << std::endl;
     }
 
     { // 3. Monomial based implementation
@@ -110,7 +170,7 @@ int main (int argc, char *argv[])
 
   bool success = true;
 
-  std::ofstream fout("benchmark.dat", std::ios_base::out);
+  std::ofstream fout("benchmark_gcc12.dat", std::ios_base::out);
   Dune::Timer t;
 
   success &= benchmark<8>(fout, 100);
