@@ -173,7 +173,7 @@ int main (int argc, char *argv[])
 
   std::ofstream fout("benchmark.dat", std::ios_base::out);
 
-  success &= benchmark<8>(fout, 100);
+  success &= benchmark<8>(fout, 10);
 
   fout.close();
 
