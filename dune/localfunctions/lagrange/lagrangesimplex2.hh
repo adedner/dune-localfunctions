@@ -28,6 +28,7 @@
 
 namespace Dune { namespace Impl
 {
+  // The traits provide static or dynamic order and size information
   template<unsigned int dim, int k>
   struct LagrangeSimplexTraits2
   {
@@ -49,6 +50,7 @@ namespace Dune { namespace Impl
   };
 
 
+  // this specialization is for the dynamic order case
   template<unsigned int dim>
   struct LagrangeSimplexTraits2<dim,-1>
   {
@@ -65,11 +67,13 @@ namespace Dune { namespace Impl
         DUNE_THROW(Dune::InvalidStateException, "LagrangeSimplex: order must be non-negative");
     }
 
+    //! \brief Polynomial order of the shape functions
     constexpr int order() const
     {
       return k_;
     }
 
+    //! \brief Number of shape functions
     constexpr unsigned int size() const
     {
       return size_;
@@ -127,11 +131,11 @@ namespace Dune { namespace Impl
     }
 
     // Cache for Lagrange basis function evaluations, used in partial()
-    auto L3(int K, int order) const
+    auto L3(int derivativeOrder, int order) const
     {
-      cache_.resize((dim+1)*K*(order+1));
+      cache_.resize((dim+1)*derivativeOrder*(order+1));
       using E = Std::extents<int,dim+1,std::dynamic_extent,std::dynamic_extent>;
-      return Std::mdspan<R,E>{cache_.data(), E(K, order+1)};
+      return Std::mdspan<R,E>{cache_.data(), E(derivativeOrder, order+1)};
     }
   };
 
@@ -143,7 +147,7 @@ namespace Dune { namespace Impl
      \tparam D Type to represent the field in the domain
      \tparam R Type to represent the field in the range
      \tparam dim Dimension of the domain simplex
-     \tparam k Polynomial order
+     \tparam polynomialOrder Polynomial order of the shape functions
    */
   template<class D, class R, unsigned int dim, int polynomialOrder>
   class LagrangeSimplexLocalBasis2
@@ -166,6 +170,8 @@ public:
 
 private:
 
+    // Fix the first index in a multi-dimensional array to `i`. For matrices this
+    // corresponds to the ith row of the matrix.
     template <class I, std::size_t e0, std::size_t... ee, class C>
     static auto slice(Std::mdarray<R,Std::extents<I,e0,ee...>,Std::layout_right,C>& L, int i)
     {
@@ -207,7 +213,7 @@ private:
     //
     // L_i(t) = (t-0)/(i-0) * ... * (t-(i-1))/(i-(i-1))
     //        = (t-0)*...*(t-(i-1))/(i!);
-    static constexpr void evaluateLagrangePolynomials(const R& t, auto&& L, int k)
+    static constexpr void evaluateLagrangePolynomials(const R& t, auto L, int k)
     {
       L[0] = 1;
       for (auto i : Dune::range(k))
@@ -216,7 +222,7 @@ private:
 
     // Evaluate the univariate Lagrange polynomial derivatives L_i(t) for i=0,...,k
     // up to given maxDerivativeOrder.
-    static constexpr void evaluateLagrangePolynomialDerivative(const R& t, auto&& LL, unsigned int maxDerivativeOrder, int k)
+    static constexpr void evaluateLagrangePolynomialDerivative(const R& t, auto LL, unsigned int maxDerivativeOrder, int k)
     {
       auto L = slice(LL,0);
       L[0] = 1;
@@ -250,10 +256,10 @@ private:
     // \f$f(x) = \prod_{j=0}^{d} L_{i_j}^{(alpha_j)}(x_j) \f$.
     static constexpr R barycentricDerivative(
         BarycentricMultiIndex beta,
-        const auto&L,
+        const auto& L,
+        int k,
         const BarycentricMultiIndex& i,
-        const BarycentricMultiIndex& alpha = {},
-        int k = {})
+        const BarycentricMultiIndex& alpha = {})
     {
       // If there are unprocessed derivatives left we search the first unprocessed
       // partial derivative direction j and compute it using the product and chain rule.
@@ -271,8 +277,8 @@ private:
           leftDerivatives[j]++;
           rightDerivatives.back()++;
           beta[j]--;
-          return (barycentricDerivative(beta, L, i, leftDerivatives, k) -
-                  barycentricDerivative(beta, L, i, rightDerivatives, k)) * k;
+          return (barycentricDerivative(beta, L, k, i, leftDerivatives) -
+                  barycentricDerivative(beta, L, k, i, rightDerivatives)) * k;
         }
       }
       // If there are no unprocessed derivatives we can simply evaluate
@@ -506,7 +512,7 @@ private:
         // Compute rescaled barycentric coordinates of x
         auto z = barycentric(in);
 
-        // L[j][m][i] is the m-th derivative of the i-th Lagrange polynomial at z[j]
+        // L(j,m,i) is the m-th derivative of the i-th Lagrange polynomial at z[j]
         auto L = Caches::L3(staticTotalOrder,k);
         for (auto j : Dune::range(dim))
           evaluateLagrangePolynomialDerivative(z[j], slice(L,j), derivativeOrder[j], k);
@@ -522,7 +528,7 @@ private:
           unsigned int n = 0;
           for (auto i0 : Dune::range(k + 1))
             for (auto i1 : std::array{k - i0})
-              out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1}, {}, k);
+              out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1});
         }
         if constexpr (dim==2)
         {
@@ -530,7 +536,7 @@ private:
           for (auto i1 : Dune::range(k + 1))
             for (auto i0 : Dune::range(k - i1 + 1))
               for (auto i2 : std::array{k - i1 - i0})
-                out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1, i2}, {}, k);
+                out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2});
         }
         if constexpr (dim==3)
         {
@@ -539,7 +545,7 @@ private:
             for (auto i1 : Dune::range(k - i2 + 1))
               for (auto i0 : Dune::range(k - i2 - i1 + 1))
                 for (auto i3 : std::array{k - i2 - i1 - i0})
-                  out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1, i2, i3}, {}, k);
+                  out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2, i3});
         }
       });
     }

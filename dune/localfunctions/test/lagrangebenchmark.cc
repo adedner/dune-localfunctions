@@ -141,20 +141,21 @@ bool benchmark(std::ostream& out, int max_iter = 10)
       out << "Time(dynamic order 2) = " << t.elapsed()/max_iter << std::endl;
     }
 
-    { // 3. Monomial based implementation
-      std::vector<LagrangeLocalFiniteElement<EquidistantPointSet,dim,double,double>> lfe;
-      for (unsigned int i = 1; i < max_order; ++i) {
-        lfe.emplace_back(Dune::GeometryTypes::simplex(dim),i);
-      }
+  //   { // 3. Monomial based implementation
+  //     std::vector<LagrangeLocalFiniteElement<EquidistantPointSet,dim,double,double>> lfe;
+  //     for (unsigned int i = 1; i < max_order; ++i) {
+  //       lfe.emplace_back(Dune::GeometryTypes::simplex(dim),i);
+  //     }
 
-      t.reset();
-      for (int iter = 0; iter < max_iter; ++iter) {
-        for (auto& pklfem : lfe) {
-          success &= testFE(pklfem);
-        }
-      }
-      out << "Time(monomial-dynamic lagrange) = " << t.elapsed()/max_iter << std::endl;
-    }
+  //     t.reset();
+  //     for (int iter = 0; iter < max_iter; ++iter) {
+  //       for (auto& pklfem : lfe) {
+  //         success &= testFE(pklfem);
+  //       }
+  //     }
+  //     out << "Time(monomial-dynamic lagrange) = " << t.elapsed()/max_iter << std::endl;
+  //   }
+
   });
 
   return success;
@@ -170,8 +171,7 @@ int main (int argc, char *argv[])
 
   bool success = true;
 
-  std::ofstream fout("benchmark_gcc12.dat", std::ios_base::out);
-  Dune::Timer t;
+  std::ofstream fout("benchmark.dat", std::ios_base::out);
 
   success &= benchmark<8>(fout, 100);
 
