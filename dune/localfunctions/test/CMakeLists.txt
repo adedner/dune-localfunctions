@@ -50,7 +50,12 @@ dune_add_test(SOURCES test-q2.cc)
 
 dune_add_test(SOURCES test-lagrangecache.cc)
 
-dune_add_test(SOURCES lagrangebenchmark.cc)
+find_package(benchmark)
+dune_add_test(SOURCES lagrangebenchmark.cc
+              CMAKE_GUARD "benchmark_FOUND")
+if(benchmark_FOUND)
+  target_link_libraries(lagrangebenchmark PRIVATE benchmark::benchmark)
+endif()
 
 dune_add_test(NAME test-lagrange1
               SOURCES test-lagrange.cc
