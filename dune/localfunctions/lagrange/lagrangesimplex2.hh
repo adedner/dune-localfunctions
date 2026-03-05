@@ -81,10 +81,10 @@ namespace Dune { namespace Impl
   };
 
   template<class R, unsigned int dim, int k>
-  struct LagrangeSimplexLocalBasisCaches2
+  struct LagrangeSimplexLocalBasisBuffers2
   {
     // Cache for Lagrange basis function evaluations, used in evaluateFunction()
-    static auto L1(int /*order*/)
+    static auto makeValueBuffer(int /*order*/)
     {
       using E = Std::extents<int,dim+1,k+1>;
       using C = std::array<R,(dim+1)*(k+1)>;
@@ -92,7 +92,7 @@ namespace Dune { namespace Impl
     }
 
     // Cache for Lagrange basis function evaluations, used in evaluateJacobian()
-    static auto L2(int /*order*/)
+    static auto makeJacobianBuffer(int /*order*/)
     {
       using E = Std::extents<int,dim+1,2,k+1>;
       using C = std::array<R,(dim+1)*2*(k+1)>;
@@ -101,7 +101,7 @@ namespace Dune { namespace Impl
 
     // Cache for Lagrange basis function evaluations, used in partial()
     template <class T, T o>
-    static auto L3(std::integral_constant<T,o>, int /*order*/)
+    static auto makePartialBuffer(std::integral_constant<T,o>, int /*order*/)
     {
       using E = Std::extents<int,dim+1,o,k+1>;
       using C = std::array<R,(dim+1)*o*(k+1)>;
@@ -110,12 +110,12 @@ namespace Dune { namespace Impl
   };
 
   template<class R, unsigned int dim>
-  struct LagrangeSimplexLocalBasisCaches2<R,dim,-1>
+  struct LagrangeSimplexLocalBasisBuffers2<R,dim,-1>
   {
     mutable std::vector<R> cache_{};
 
     // Cache for Lagrange basis function evaluations, used in evaluateFunction()
-    auto L1(int order) const
+    auto makeValueBuffer(int order) const
     {
       cache_.resize((dim+1)*(order+1));
       using E = Std::extents<int,dim+1,std::dynamic_extent>;
@@ -123,7 +123,7 @@ namespace Dune { namespace Impl
     }
 
     // Cache for Lagrange basis function evaluations, used in evaluateJacobian()
-    auto L2(int order) const
+    auto makeJacobianBuffer(int order) const
     {
       cache_.resize((dim+1)*2*(order+1));
       using E = Std::extents<int,dim+1,2,std::dynamic_extent>;
@@ -131,7 +131,7 @@ namespace Dune { namespace Impl
     }
 
     // Cache for Lagrange basis function evaluations, used in partial()
-    auto L3(int derivativeOrder, int order) const
+    auto makePartialBuffer(int derivativeOrder, int order) const
     {
       cache_.resize((dim+1)*derivativeOrder*(order+1));
       using E = Std::extents<int,dim+1,std::dynamic_extent,std::dynamic_extent>;
@@ -152,12 +152,12 @@ namespace Dune { namespace Impl
   template<class D, class R, unsigned int dim, int polynomialOrder>
   class LagrangeSimplexLocalBasis2
     : public LagrangeSimplexTraits2<dim,polynomialOrder>
-    , private LagrangeSimplexLocalBasisCaches2<R,dim,polynomialOrder>
+    , private LagrangeSimplexLocalBasisBuffers2<R,dim,polynomialOrder>
   {
     template <class> friend class LagrangeSimplexLocalInterpolation2;
 
     using Base = LagrangeSimplexTraits2<dim,polynomialOrder>;
-    using Caches = LagrangeSimplexLocalBasisCaches2<R,dim,polynomialOrder>;
+    using Buffers = LagrangeSimplexLocalBasisBuffers2<R,dim,polynomialOrder>;
     static constexpr bool is_static_order = Base::is_static_order;
 
 public:
@@ -325,7 +325,7 @@ private:
       // Compute rescaled barycentric coordinates of x
       auto z = barycentric(x);
 
-      auto L = Caches::L1(k);
+      auto L = Buffers::makeValueBuffer(k);
       for (auto j : Dune::range(dim+1))
         evaluateLagrangePolynomials(z[j], slice(L,j), k);
 
@@ -394,7 +394,7 @@ private:
       auto z = barycentric(x);
 
       // L(j,m,i) is the m-th derivative of the i-th Lagrange polynomial at z[j]
-      auto L = Caches::L2(k);
+      auto L = Buffers::makeJacobianBuffer(k);
       for (auto j : Dune::range(dim+1))
         evaluateLagrangePolynomialDerivative(z[j], slice(L,j), 1, k);
 
@@ -513,7 +513,7 @@ private:
         auto z = barycentric(in);
 
         // L(j,m,i) is the m-th derivative of the i-th Lagrange polynomial at z[j]
-        auto L = Caches::L3(staticTotalOrder,k);
+        auto L = Buffers::makePartialBuffer(staticTotalOrder,k);
         for (auto j : Dune::range(dim))
           evaluateLagrangePolynomialDerivative(z[j], slice(L,j), derivativeOrder[j], k);
         evaluateLagrangePolynomialDerivative(z[dim], slice(L,dim), totalOrder, k);

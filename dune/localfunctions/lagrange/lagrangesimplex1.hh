@@ -84,26 +84,26 @@ namespace Dune { namespace Impl
   };
 
   template<class R, unsigned int dim, int k>
-  struct LagrangeSimplexLocalBasisCaches1
+  struct LagrangeSimplexLocalBasisBuffers1
   {
-    constexpr LagrangeSimplexLocalBasisCaches1(int order = k) {}
+    constexpr LagrangeSimplexLocalBasisBuffers1(int order = k) {}
 
     mutable Std::mdarray<R,Std::extents<int,dim+1,k+1>,Std::layout_right,
-      std::array<R,(dim+1)*(k+1)>> L1_{};
+      std::array<R,(dim+1)*(k+1)>> valueBuffer_{};
     mutable Std::mdarray<R,Std::extents<int,dim+1,2,k+1>,Std::layout_right,
-      std::array<R,(dim+1)*2*(k+1)>> L2_{};
+      std::array<R,(dim+1)*2*(k+1)>> jacobianBuffer_{};
   };
 
   template<class R, unsigned int dim>
-  struct LagrangeSimplexLocalBasisCaches1<R,dim,-1>
+  struct LagrangeSimplexLocalBasisBuffers1<R,dim,-1>
   {
-    constexpr LagrangeSimplexLocalBasisCaches1(int order)
-      : L1_(order+1)
-      , L2_(order+1)
+    constexpr LagrangeSimplexLocalBasisBuffers1(int order)
+      : valueBuffer_(order+1)
+      , jacobianBuffer_(order+1)
     {}
 
-    mutable Std::mdarray<R,Std::extents<int,dim+1,std::dynamic_extent>> L1_;
-    mutable Std::mdarray<R,Std::extents<int,dim+1,2,std::dynamic_extent>> L2_;
+    mutable Std::mdarray<R,Std::extents<int,dim+1,std::dynamic_extent>> valueBuffer_;
+    mutable Std::mdarray<R,Std::extents<int,dim+1,2,std::dynamic_extent>> jacobianBuffer_;
   };
 
    /** \brief Lagrange shape functions of arbitrary order on the reference simplex
@@ -119,18 +119,18 @@ namespace Dune { namespace Impl
   template<class D, class R, unsigned int dim, int k>
   class LagrangeSimplexLocalBasis1
     : public LagrangeSimplexTraits1<dim,k>
-    , private LagrangeSimplexLocalBasisCaches1<R,dim,k>
+    , private LagrangeSimplexLocalBasisBuffers1<R,dim,k>
   {
     template <class> friend class LagrangeSimplexLocalInterpolation1;
 
     using Base = LagrangeSimplexTraits1<dim,k>;
-    using Caches = LagrangeSimplexLocalBasisCaches1<R,dim,k>;
+    using Buffers = LagrangeSimplexLocalBasisBuffers1<R,dim,k>;
     static constexpr bool is_static_order = Base::is_static_order;
 
 public:
     constexpr LagrangeSimplexLocalBasis1(int order = k)
       : Base(order)
-      , Caches(order)
+      , Buffers(order)
     {}
 
     using Base::order;
@@ -138,8 +138,6 @@ public:
 
 private:
 
-    using Caches::L1_;
-    using Caches::L2_;
     using Base::hybrid_order;
 
     template <class I, std::size_t e0, std::size_t... ee, class C>
@@ -285,16 +283,17 @@ private:
 
       // Compute rescaled barycentric coordinates of x
       auto z = barycentric(x);
+      auto& L = Buffers::valueBuffer_;
 
       for (auto j : Dune::range(dim+1))
-        evaluateLagrangePolynomials(z[j], slice(L1_,j), hybrid_order());
+        evaluateLagrangePolynomials(z[j], slice(L,j), hybrid_order());
 
       if (dim==1)
       {
         unsigned int n = 0;
         for (auto i0 : Dune::range(k_val + 1))
           for (auto i1 : std::array{k_val - i0})
-            out[n++] = L1_(0,i0) * L1_(1,i1);
+            out[n++] = L(0,i0) * L(1,i1);
         return;
       }
       if (dim==2)
@@ -303,7 +302,7 @@ private:
         for (auto i1 : Dune::range(k_val + 1))
           for (auto i0 : Dune::range(k_val - i1 + 1))
             for (auto i2 : std::array{k_val - i1 - i0})
-              out[n++] = L1_(0,i0) * L1_(1,i1) * L1_(2,i2);
+              out[n++] = L(0,i0) * L(1,i1) * L(2,i2);
         return;
       }
       if (dim==3)
@@ -313,7 +312,7 @@ private:
           for (auto i1 : Dune::range(k_val - i2 + 1))
             for (auto i0 : Dune::range(k_val - i2 - i1 + 1))
               for (auto i3 : std::array{k_val - i2 - i1 - i0})
-                out[n++] = L1_(0,i0) * L1_(1,i1)  * L1_(2,i2) * L1_(3,i3);
+                out[n++] = L(0,i0) * L(1,i1)  * L(2,i2) * L(3,i3);
         return;
       }
 
@@ -353,10 +352,11 @@ private:
       // Compute rescaled barycentric coordinates of x
       auto z = barycentric(x);
 
-      // L2_(j,m,i) is the m-th derivative of the i-th Lagrange polynomial at z[j]
+      // L(j,m,i) is the m-th derivative of the i-th Lagrange polynomial at z[j]
+      auto& L = Buffers::jacobianBuffer_;
 
       for (auto j : Dune::range(dim+1))
-        evaluateLagrangePolynomialDerivative(z[j], slice(L2_,j), 1, hybrid_order());
+        evaluateLagrangePolynomialDerivative(z[j], slice(L,j), 1, hybrid_order());
 
       if (dim==1)
       {
@@ -365,7 +365,7 @@ private:
         {
           for (auto i1 : std::array{k_val-i0})
           {
-            out[n][0][0] = (L2_(0,1,i0) * L2_(1,0,i1) - L2_(0,0,i0) * L2_(1,1,i1))*k_val;
+            out[n][0][0] = (L(0,1,i0) * L(1,0,i1) - L(0,0,i0) * L(1,1,i1))*k_val;
             ++n;
           }
         }
@@ -380,8 +380,8 @@ private:
           {
             for (auto i2 : std::array{k_val - i1 - i0})
             {
-              out[n][0][0] = (L2_(0,1,i0) * L2_(1,0,i1) * L2_(2,0,i2) - L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,1,i2))*k_val;
-              out[n][0][1] = (L2_(0,0,i0) * L2_(1,1,i1) * L2_(2,0,i2) - L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,1,i2))*k_val;
+              out[n][0][0] = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k_val;
+              out[n][0][1] = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k_val;
               ++n;
             }
           }
@@ -399,9 +399,9 @@ private:
             {
               for (auto i3 : std::array{k_val - i2 - i1 - i0})
               {
-                out[n][0][0] = (L2_(0,1,i0) * L2_(1,0,i1) * L2_(2,0,i2) * L2_(3,0,i3) - L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,0,i2) * L2_(3,1,i3))*k_val;
-                out[n][0][1] = (L2_(0,0,i0) * L2_(1,1,i1) * L2_(2,0,i2) * L2_(3,0,i3) - L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,0,i2) * L2_(3,1,i3))*k_val;
-                out[n][0][2] = (L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,1,i2) * L2_(3,0,i3) - L2_(0,0,i0) * L2_(1,0,i1) * L2_(2,0,i2) * L2_(3,1,i3))*k_val;
+                out[n][0][0] = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k_val;
+                out[n][0][1] = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k_val;
+                out[n][0][2] = (L(0,0,i0) * L(1,0,i1) * L(2,1,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k_val;
                 ++n;
               }
             }
@@ -458,6 +458,7 @@ private:
         return;
       }
 
+      assert(totalOrder < k_val+1);
       // Since the required stack storage depends on the dynamic total order,
       // we need to do a dynamic to static dispatch by enumerating all supported
       // static orders.
@@ -473,7 +474,7 @@ private:
         auto z = barycentric(in);
 
         // L[j][m][i] is the m-th derivative of the i-th Lagrange polynomial at z[j]
-        auto L3_ = [&]{
+        auto L = [&]{
           if constexpr(is_static_order)
             return Std::mdarray<R,Std::extents<int,dim+1,static_cast<int>(K),k+1>,Std::layout_right,std::array<R,(dim+1)*K*(k+1)>>{};
           else
@@ -481,8 +482,8 @@ private:
         }();
 
         for (auto j : Dune::range(dim))
-          evaluateLagrangePolynomialDerivative(z[j], slice(L3_,j), der_order[j], hybrid_order());
-        evaluateLagrangePolynomialDerivative(z[dim], slice(L3_,dim), totalOrder, hybrid_order());
+          evaluateLagrangePolynomialDerivative(z[j], slice(L,j), der_order[j], hybrid_order());
+        evaluateLagrangePolynomialDerivative(z[dim], slice(L,dim), totalOrder, hybrid_order());
 
         auto barycentricOrder = BarycentricMultiIndex{};
         for (auto j : Dune::range(dim))
@@ -494,7 +495,7 @@ private:
           unsigned int n = 0;
           for (auto i0 : Dune::range(k_val + 1))
             for (auto i1 : std::array{k_val - i0})
-              out[n++] = barycentricDerivative(barycentricOrder, L3_, BarycentricMultiIndex{i0, i1}, {}, hybrid_order());
+              out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1}, {}, hybrid_order());
         }
         if constexpr (dim==2)
         {
@@ -502,7 +503,7 @@ private:
           for (auto i1 : Dune::range(k_val + 1))
             for (auto i0 : Dune::range(k_val - i1 + 1))
               for (auto i2 : std::array{k_val - i1 - i0})
-                out[n++] = barycentricDerivative(barycentricOrder, L3_, BarycentricMultiIndex{i0, i1, i2}, {}, hybrid_order());
+                out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1, i2}, {}, hybrid_order());
         }
         if constexpr (dim==3)
         {
@@ -511,7 +512,7 @@ private:
             for (auto i1 : Dune::range(k_val - i2 + 1))
               for (auto i0 : Dune::range(k_val - i2 - i1 + 1))
                 for (auto i3 : std::array{k_val - i2 - i1 - i0})
-                  out[n++] = barycentricDerivative(barycentricOrder, L3_, BarycentricMultiIndex{i0, i1, i2, i3}, {}, hybrid_order());
+                  out[n++] = barycentricDerivative(barycentricOrder, L, BarycentricMultiIndex{i0, i1, i2, i3}, {}, hybrid_order());
         }
       });
     }
