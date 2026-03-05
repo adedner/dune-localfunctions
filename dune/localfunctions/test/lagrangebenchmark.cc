@@ -21,6 +21,7 @@
 #include <dune/localfunctions/lagrange/lagrangesimplex.hh>
 #include <dune/localfunctions/lagrange/lagrangesimplex1.hh>
 #include <dune/localfunctions/lagrange/lagrangesimplex2.hh>
+#include <dune/localfunctions/lagrange/lagrangesimplex3.hh>
 #include <dune/localfunctions/lagrange/lagrangesimplexold.hh>
 
 #include <dune/localfunctions/test/test-localfe.hh>
@@ -100,6 +101,7 @@ BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,1, 8>>)->
 BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,1,16>>)->Name("static-old/dim=1/16");
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement1<double,double,1>>)->Name("dynamic1/dim=1")->RangeMultiplier(2)->Range(1, 1<<4);
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement2<double,double,1>>)->Name("dynamic2/dim=1")->RangeMultiplier(2)->Range(1, 1<<4);
+BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement3<double,double,1>>)->Name("dynamic3/dim=1")->RangeMultiplier(2)->Range(1, 1<<4);
 BENCHMARK(BM_dynamic_old<LagrangeLocalFiniteElement<EquidistantPointSet,1,double,double>>)->Name("dynamic-old/dim=1")->RangeMultiplier(2)->Range(1, 1<<4);
 
 BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElement1<double,double,2, 1>>)->Name("static1/dim=2/1");
@@ -116,6 +118,7 @@ BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,2, 4>>)->
 BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,2, 8>>)->Name("static-old/dim=2/8");
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement1<double,double,2>>)->Name("dynamic1/dim=2")->RangeMultiplier(2)->Range(1, 1<<3);
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement2<double,double,2>>)->Name("dynamic2/dim=2")->RangeMultiplier(2)->Range(1, 1<<3);
+BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement3<double,double,2>>)->Name("dynamic3/dim=2")->RangeMultiplier(2)->Range(1, 1<<3);
 BENCHMARK(BM_dynamic_old<LagrangeLocalFiniteElement<EquidistantPointSet,2,double,double>>)->Name("dynamic-old/dim=2")->RangeMultiplier(2)->Range(1, 1<<3);
 
 BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElement1<double,double,3, 1>>)->Name("static1/dim=3/1");
@@ -129,6 +132,7 @@ BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,3, 2>>)->
 BENCHMARK(BM_static<LagrangeSimplexLocalFiniteElementOld<double,double,3, 4>>)->Name("static-old/dim=3/4");
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement1<double,double,3>>)->Name("dynamic1/dim=3")->RangeMultiplier(2)->Range(1, 1<<2);
 BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement2<double,double,3>>)->Name("dynamic2/dim=3")->RangeMultiplier(2)->Range(1, 1<<2);
+BENCHMARK(BM_dynamic<LagrangeSimplexLocalFiniteElement3<double,double,3>>)->Name("dynamic3/dim=3")->RangeMultiplier(2)->Range(1, 1<<2);
 BENCHMARK(BM_dynamic_old<LagrangeLocalFiniteElement<EquidistantPointSet,3,double,double>>)->Name("dynamic-old/dim=3")->RangeMultiplier(2)->Range(1, 1<<2);
 
 
