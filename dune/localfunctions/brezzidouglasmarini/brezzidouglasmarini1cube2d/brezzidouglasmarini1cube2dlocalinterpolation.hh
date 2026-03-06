@@ -90,32 +90,35 @@ namespace Dune
       for (typename QuadratureRule<Scalar,1>::const_iterator it = rule.begin();
            it != rule.end(); ++it)
       {
-        Scalar qPos = it->position();
+        const Scalar qPos = it->position();
+        const Scalar weight_0 = it->weight();
+        const Scalar weight_1 = (2.0*qPos - 1.0)*it->weight();
+
         typename LB::Traits::DomainType localPos;
 
         localPos[0] = 0.0;
         localPos[1] = qPos;
         auto y = f(localPos);
-        out[0] += (y[0]*n0[0] + y[1]*n0[1])*it->weight()*sign0;
-        out[1] += (y[0]*n0[0] + y[1]*n0[1])*(2.0*qPos - 1.0)*it->weight();
+        out[0] += (y[0]*n0[0] + y[1]*n0[1])*weight_0*sign0;
+        out[1] += (y[0]*n0[0] + y[1]*n0[1])*weight_1;
 
         localPos[0] = 1.0;
         localPos[1] = qPos;
         y = f(localPos);
-        out[2] += (y[0]*n1[0] + y[1]*n1[1])*it->weight()*sign1;
-        out[3] += (y[0]*n1[0] + y[1]*n1[1])*(1.0 - 2.0*qPos)*it->weight();
+        out[2] += (y[0]*n1[0] + y[1]*n1[1])*weight_0*sign1;
+        out[3] += (y[0]*n1[0] + y[1]*n1[1])*(-weight_1);
 
         localPos[0] = qPos;
         localPos[1] = 0.0;
         y = f(localPos);
-        out[4] += (y[0]*n2[0] + y[1]*n2[1])*it->weight()*sign2;
-        out[5] += (y[0]*n2[0] + y[1]*n2[1])*(1.0 - 2.0*qPos)*it->weight();
+        out[4] += (y[0]*n2[0] + y[1]*n2[1])*weight_0*sign2;
+        out[5] += (y[0]*n2[0] + y[1]*n2[1])*(-weight_1);
 
         localPos[0] = qPos;
         localPos[1] = 1.0;
         y = f(localPos);
-        out[6] += (y[0]*n3[0] + y[1]*n3[1])*it->weight()*sign3;
-        out[7] += (y[0]*n3[0] + y[1]*n3[1])*(2.0*qPos - 1.0)*it->weight();
+        out[6] += (y[0]*n3[0] + y[1]*n3[1])*weight_0*sign3;
+        out[7] += (y[0]*n3[0] + y[1]*n3[1])*weight_1;
       }
     }
 
