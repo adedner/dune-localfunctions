@@ -92,30 +92,33 @@ namespace Dune
 
       for (typename Dune::QuadratureRule<Scalar,1>::const_iterator it=rule.begin(); it!=rule.end(); ++it)
       {
-        Scalar qPos = it->position();
+        const Scalar qPos = it->position();
+        const Scalar weight_0 = it->weight();
+        const Scalar weight_1 = (1.0 - 2.0*qPos)*it->weight();
+        const Scalar weight_2 = (6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight();
 
         typename LB::Traits::DomainType localPos;
 
         localPos[0] = qPos;
         localPos[1] = 0.0;
         auto y = f(localPos);
-        out[0] += (y[0]*n0[0] + y[1]*n0[1])*it->weight()*sign0/c0;
-        out[1] += (y[0]*n0[0] + y[1]*n0[1])*(1.0 - 2.0*qPos)*it->weight()/c0;
-        out[2] += (y[0]*n0[0] + y[1]*n0[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign0/c0;
+        out[0] += (y[0]*n0[0] + y[1]*n0[1])*weight_0*sign0/c0;
+        out[1] += (y[0]*n0[0] + y[1]*n0[1])*weight_1/c0;
+        out[2] += (y[0]*n0[0] + y[1]*n0[1])*weight_2*sign0/c0;
 
         localPos[0] = 0.0;
         localPos[1] = qPos;
         y = f(localPos);
-        out[3] += (y[0]*n1[0]+y[1]*n1[1])*it->weight()*sign1/c1;
-        out[4] += (y[0]*n1[0]+y[1]*n1[1])*(2.0*qPos-1.0)*it->weight()/c1;
-        out[5] += (y[0]*n1[0]+y[1]*n1[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign1/c1;
+        out[3] += (y[0]*n1[0]+y[1]*n1[1])*weight_0*sign1/c1;
+        out[4] += (y[0]*n1[0]+y[1]*n1[1])*(-weight_1)/c1;
+        out[5] += (y[0]*n1[0]+y[1]*n1[1])*weight_2*sign1/c1;
 
         localPos[0] = 1.0 - qPos;
         localPos[1] = qPos;
         y = f(localPos);
-        out[6] += (y[0]*n2[0] + y[1]*n2[1])*it->weight()*sign2/c2;
-        out[7] += (y[0]*n2[0] + y[1]*n2[1])*(1.0 - 2.0*qPos)*it->weight()/c2;
-        out[8] += (y[0]*n2[0] + y[1]*n2[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign2/c2;
+        out[6] += (y[0]*n2[0] + y[1]*n2[1])*weight_0*sign2/c2;
+        out[7] += (y[0]*n2[0] + y[1]*n2[1])*weight_1/c2;
+        out[8] += (y[0]*n2[0] + y[1]*n2[1])*weight_2*sign2/c2;
       }
 
       // a volume part is needed here for dofs: 9 10 11
