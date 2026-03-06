@@ -5,9 +5,12 @@
 #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINISIMPLEX_HH
 #define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINISIMPLEX_HH
 
+// 2d implementation
 #include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1simplex2d.hh>
 #include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini2simplex2d.hh>
 
+// 3d implementation
+#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1simplex3d.hh>
 
 namespace Dune
 {
@@ -63,6 +66,28 @@ namespace Dune
      */
     BrezziDouglasMariniSimplexLocalFiniteElement(int s)
       : BDM2Simplex2DLocalFiniteElement<D, R>::BDM2Simplex2DLocalFiniteElement(s)
+    {}
+  };
+
+  /**
+   * \brief Brezzi-Douglas-Marini local finite elements for simplices with dimension 3 and order 1.
+   */
+  template<class D, class R>
+  class BrezziDouglasMariniSimplexLocalFiniteElement<D, R, 3, 1>
+    : public BDM1Simplex3DLocalFiniteElement<D, R>
+  {
+  public:
+    /** \brief Default constructor */
+    BrezziDouglasMariniSimplexLocalFiniteElement()
+    {}
+
+    /**
+     * \brief Constructor with a set of edge orientations
+     *
+     * \param s Bitfield of size 3 giving the orientations of the three element edges
+     */
+    BrezziDouglasMariniSimplexLocalFiniteElement(int s)
+      : BDM1Simplex3DLocalFiniteElement<D, R>::BDM1Simplex3DLocalFiniteElement(s)
     {}
   };
 

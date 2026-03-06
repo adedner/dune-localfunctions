@@ -2,21 +2,21 @@
 // vi: set et ts=4 sw=2 sts=2:
 // SPDX-FileCopyrightInfo: Copyright © DUNE Project contributors, see file LICENSE.md in module root
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
-#ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX2D_LOCALFINITEELEMENT_HH
-#define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX2D_LOCALFINITEELEMENT_HH
+#ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX3D_LOCALFINITEELEMENT_HH
+#define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX3D_LOCALFINITEELEMENT_HH
 
 #include <dune/geometry/type.hh>
 
 #include "../common/localfiniteelementtraits.hh"
-#include "brezzidouglasmarini1simplex2d/brezzidouglasmarini1simplex2dlocalbasis.hh"
-#include "brezzidouglasmarini1simplex2d/brezzidouglasmarini1simplex2dlocalcoefficients.hh"
-#include "brezzidouglasmarini1simplex2d/brezzidouglasmarini1simplex2dlocalinterpolation.hh"
+#include "brezzidouglasmarini1simplex3d/brezzidouglasmarini1simplex3dlocalbasis.hh"
+#include "brezzidouglasmarini1simplex3d/brezzidouglasmarini1simplex3dlocalcoefficients.hh"
+#include "brezzidouglasmarini1simplex3d/brezzidouglasmarini1simplex3dlocalinterpolation.hh"
 
 namespace Dune
 {
 
   /**
-   * \brief First order Brezzi-Douglas-Marini shape functions on triangles.
+   * \brief First order Brezzi-Douglas-Marini shape functions on tetrahedrons.
    *
    * \ingroup BrezziDouglasMarini
    *
@@ -24,17 +24,17 @@ namespace Dune
    * \tparam R Type to represent the field in the range.
    */
   template<class D, class R>
-  class BDM1Simplex2DLocalFiniteElement
+  class BDM1Simplex3DLocalFiniteElement
   {
 
   public:
     typedef LocalFiniteElementTraits<
-        BDM1Simplex2DLocalBasis<D,R>,
-        BDM1Simplex2DLocalCoefficients,
-        BDM1Simplex2DLocalInterpolation<BDM1Simplex2DLocalBasis<D,R> > > Traits;
+        BDM1Simplex3DLocalBasis<D,R>,
+        BDM1Simplex3DLocalCoefficients,
+        BDM1Simplex3DLocalInterpolation<BDM1Simplex3DLocalBasis<D,R> > > Traits;
 
     //! \brief Standard constructor
-    BDM1Simplex2DLocalFiniteElement ()
+    BDM1Simplex3DLocalFiniteElement ()
     {}
 
     /**
@@ -42,7 +42,7 @@ namespace Dune
      *
      * \param s Edge orientation indicator
      */
-    BDM1Simplex2DLocalFiniteElement (int s) :
+    BDM1Simplex3DLocalFiniteElement (int s) :
       basis(s),
       interpolation(s)
     {}
@@ -70,13 +70,13 @@ namespace Dune
 
     static constexpr GeometryType type ()
     {
-      return GeometryTypes::triangle;
+      return GeometryTypes::tetrahedron;
     }
 
   private:
-    BDM1Simplex2DLocalBasis<D,R> basis;
-    BDM1Simplex2DLocalCoefficients coefficients;
-    BDM1Simplex2DLocalInterpolation<BDM1Simplex2DLocalBasis<D,R> > interpolation;
+    BDM1Simplex3DLocalBasis<D,R> basis;
+    BDM1Simplex3DLocalCoefficients coefficients;
+    BDM1Simplex3DLocalInterpolation<BDM1Simplex3DLocalBasis<D,R> > interpolation;
   };
 }
-#endif // DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX2D_LOCALFINITEELEMENT_HH
+#endif // DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_SIMPLEX3D_LOCALFINITEELEMENT_HH
