@@ -5,10 +5,12 @@
 #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINICUBE_HH
 #define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINICUBE_HH
 
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1cube2d.hh>
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1cube3d.hh>
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini2cube2d.hh>
+#include <dune/localfunctions/common/localfiniteelementtraits.hh>
 
+// implementation
+#include <dune/localfunctions/brezzidouglasmarini/cube/localbasis.hh>
+#include <dune/localfunctions/brezzidouglasmarini/cube/localcoefficients.hh>
+#include <dune/localfunctions/brezzidouglasmarini/cube/localinterpolation.hh>
 
 namespace Dune
 {
@@ -21,72 +23,40 @@ namespace Dune
    * \tparam order Polynomial order of the element
    */
   template<class D, class R, unsigned int dim, unsigned int order>
-  class BrezziDouglasMariniCubeLocalFiniteElement;
-
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for cubes with dimension 2 and order 1.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniCubeLocalFiniteElement<D, R, 2, 1>
-    : public BDM1Cube2DLocalFiniteElement<D, R>
+  class BrezziDouglasMariniCubeLocalFiniteElement
   {
+    using LocalBasis          = BDMCubeLocalBasis<D,R, dim, order>;
+    using LocalCoefficients   = BDMCubeLocalCoefficients<dim, order>;
+    using LocalInterpolation  = BDMCubeLocalInterpolation< D,R, dim, order>;
+
   public:
+    using Traits = LocalFiniteElementTraits<LocalBasis, LocalCoefficients, LocalInterpolation  >;
+
     /** \brief Default constructor */
     BrezziDouglasMariniCubeLocalFiniteElement()
     {}
 
     /**
-     * \brief Constructor with a set of edge orientations
+     * \brief Constructor with a set of edge or face orientations
      *
-     * \param s Bitfield of size 4 giving the orientations of the four element edges
+     * \param s Bitfield of size 4 or 6 giving the orientations of the four element edges or 6 element faces
      */
     BrezziDouglasMariniCubeLocalFiniteElement(int s)
-      : BDM1Cube2DLocalFiniteElement<D, R>::BDM1Cube2DLocalFiniteElement(s)
-    {}
-  };
-
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for cubes with dimension 2 and order 2.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniCubeLocalFiniteElement<D, R, 2, 2>
-    : public BDM2Cube2DLocalFiniteElement<D, R>
-  {
-  public:
-    /** \brief Default constructor */
-    BrezziDouglasMariniCubeLocalFiniteElement()
+      : basis(s), interpolation(s)
     {}
 
-    /**
-     * \brief Constructor with a set of edge orientations
-     *
-     * \param s Bitfield of size 4 giving the orientations of the four element edges
-     */
-    BrezziDouglasMariniCubeLocalFiniteElement(int s)
-      : BDM2Cube2DLocalFiniteElement<D, R>::BDM2Cube2DLocalFiniteElement(s)
-    {}
-  };
+    const LocalBasis& localBasis () const { return basis; }
+    const LocalCoefficients& localCoefficients () const { return coefficients; }
+    const LocalInterpolation& localInterpolation () const { return interpolation; }
 
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for cubes with dimension 3 and order 1.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniCubeLocalFiniteElement<D, R, 3, 1>
-    : public BDM1Cube3DLocalFiniteElement<D, R>
-  {
-  public:
-    /** \brief Default constructor */
-    BrezziDouglasMariniCubeLocalFiniteElement()
-    {}
+    /** \brief Number of shape functions in this finite element */
+    unsigned int size () const { return basis.size(); }
+    static constexpr auto type () -> GeometryType { return GeometryTypes::cube(dim); }
 
-    /**
-     * \brief Constructor with a set of edge orientations
-     *
-     * \param s Bitfield of size 6 giving the orientations of the six element facets
-     */
-    BrezziDouglasMariniCubeLocalFiniteElement(int s)
-      : BDM1Cube3DLocalFiniteElement<D, R>::BDM1Cube3DLocalFiniteElement(s)
-    {}
+  private:
+    LocalBasis basis;
+    LocalCoefficients coefficients;
+    LocalInterpolation interpolation;
   };
 
 } // namespace Dune
