@@ -5,12 +5,12 @@
 #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINISIMPLEX_HH
 #define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI_BREZZIDOUGLASMARINISIMPLEX_HH
 
-// 2d implementation
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1simplex2d.hh>
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini2simplex2d.hh>
+#include <dune/localfunctions/common/localfiniteelementtraits.hh>
 
-// 3d implementation
-#include <dune/localfunctions/brezzidouglasmarini/brezzidouglasmarini1simplex3d.hh>
+// implementation
+#include <dune/localfunctions/brezzidouglasmarini/simplex/localbasis.hh>
+#include <dune/localfunctions/brezzidouglasmarini/simplex/localcoefficients.hh>
+#include <dune/localfunctions/brezzidouglasmarini/simplex/localinterpolation.hh>
 
 namespace Dune
 {
@@ -19,20 +19,19 @@ namespace Dune
    *
    * \tparam D Number type to represent domain coordinates
    * \tparam R Number type to represent shape function values
-   * \tparam dim Dimension of the reference elements, currently only 2 is supported
+   * \tparam dim Dimension of the reference elements, must be 2 or 3
    * \tparam order Polynomial order of the element
    */
   template<class D, class R, unsigned int dim, unsigned int order>
-  class BrezziDouglasMariniSimplexLocalFiniteElement;
-
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for simplices with dimension 2 and order 1.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniSimplexLocalFiniteElement<D, R, 2, 1>
-    : public BDM1Simplex2DLocalFiniteElement<D, R>
+  class BrezziDouglasMariniSimplexLocalFiniteElement
   {
+    using LocalBasis          = BDMSimplexLocalBasis<D,R, dim, order>;
+    using LocalCoefficients   = BDMSimplexLocalCoefficients<dim, order>;
+    using LocalInterpolation  = BDMSimplexLocalInterpolation< D,R, dim, order>;
+
   public:
+    using Traits = LocalFiniteElementTraits<LocalBasis, LocalCoefficients, LocalInterpolation  >;
+
     /** \brief Default constructor */
     BrezziDouglasMariniSimplexLocalFiniteElement()
     {}
@@ -43,52 +42,21 @@ namespace Dune
      * \param s Bitfield of size 3 giving the orientations of the three element edges
      */
     BrezziDouglasMariniSimplexLocalFiniteElement(int s)
-      : BDM1Simplex2DLocalFiniteElement<D, R>::BDM1Simplex2DLocalFiniteElement(s)
-    {}
-  };
-
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for simplices with dimension 2 and order 2.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniSimplexLocalFiniteElement<D, R, 2, 2>
-    : public BDM2Simplex2DLocalFiniteElement<D, R>
-  {
-  public:
-    /** \brief Default constructor */
-    BrezziDouglasMariniSimplexLocalFiniteElement()
+      : basis(s), interpolation(s)
     {}
 
-    /**
-     * \brief Constructor with a set of edge orientations
-     *
-     * \param s Bitfield of size 3 giving the orientations of the three element edges
-     */
-    BrezziDouglasMariniSimplexLocalFiniteElement(int s)
-      : BDM2Simplex2DLocalFiniteElement<D, R>::BDM2Simplex2DLocalFiniteElement(s)
-    {}
-  };
+    const LocalBasis& localBasis () const { return basis; }
+    const LocalCoefficients& localCoefficients () const { return coefficients; }
+    const LocalInterpolation& localInterpolation () const { return interpolation; }
 
-  /**
-   * \brief Brezzi-Douglas-Marini local finite elements for simplices with dimension 3 and order 1.
-   */
-  template<class D, class R>
-  class BrezziDouglasMariniSimplexLocalFiniteElement<D, R, 3, 1>
-    : public BDM1Simplex3DLocalFiniteElement<D, R>
-  {
-  public:
-    /** \brief Default constructor */
-    BrezziDouglasMariniSimplexLocalFiniteElement()
-    {}
+    /** \brief Number of shape functions in this finite element */
+    unsigned int size () const { return basis.size(); }
+    static constexpr auto type () -> GeometryType { return GeometryTypes::simplex(dim); }
 
-    /**
-     * \brief Constructor with a set of edge orientations
-     *
-     * \param s Bitfield of size 3 giving the orientations of the three element edges
-     */
-    BrezziDouglasMariniSimplexLocalFiniteElement(int s)
-      : BDM1Simplex3DLocalFiniteElement<D, R>::BDM1Simplex3DLocalFiniteElement(s)
-    {}
+  private:
+    LocalBasis basis;
+    LocalCoefficients coefficients;
+    LocalInterpolation interpolation;
   };
 
 } // namespace Dune
