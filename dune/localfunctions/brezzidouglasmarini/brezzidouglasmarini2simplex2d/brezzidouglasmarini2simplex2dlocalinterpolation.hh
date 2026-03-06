@@ -51,22 +51,6 @@ namespace Dune
       {
         sign2 = -1.0;
       }
-
-      m0[0] = 0.5;
-      m0[1] = 0.0;
-      m1[0] = 0.0;
-      m1[1] = 0.5;
-      m2[0] = 0.5;
-      m2[1] = 0.5;
-      n0[0] = 0.0;
-      n0[1] = -1.0;
-      n1[0] = -1.0;
-      n1[1] = 0.0;
-      n2[0] = 1.0/sqrt(2.0);
-      n2[1] = 1.0/sqrt(2.0);
-      c0 =  0.5*n0[0] - 1.0*n0[1];
-      c1 = -1.0*n1[0] + 0.5*n1[1];
-      c2 =  0.5*n2[0] + 0.5*n2[1];
     }
 
     /**
@@ -102,23 +86,27 @@ namespace Dune
         localPos[0] = qPos;
         localPos[1] = 0.0;
         auto y = f(localPos);
-        out[0] += (y[0]*n0[0] + y[1]*n0[1])*weight_0*sign0/c0;
-        out[1] += (y[0]*n0[0] + y[1]*n0[1])*weight_1/c0;
-        out[2] += (y[0]*n0[0] + y[1]*n0[1])*weight_2*sign0/c0;
+        // n0 = (0, -1)
+        out[0] -= y[1]*weight_0*sign0;
+        out[1] -= y[1]*weight_1;
+        out[2] -= y[1]*weight_2*sign0;
 
         localPos[0] = 0.0;
         localPos[1] = qPos;
         y = f(localPos);
-        out[3] += (y[0]*n1[0]+y[1]*n1[1])*weight_0*sign1/c1;
-        out[4] += (y[0]*n1[0]+y[1]*n1[1])*(-weight_1)/c1;
-        out[5] += (y[0]*n1[0]+y[1]*n1[1])*weight_2*sign1/c1;
+        // n1 = (-1, 0)
+        out[3] -= y[0]*weight_0*sign1;
+        out[4] += y[0]*weight_1;
+        out[5] -= y[0]*weight_2*sign1;
 
         localPos[0] = 1.0 - qPos;
         localPos[1] = qPos;
         y = f(localPos);
-        out[6] += (y[0]*n2[0] + y[1]*n2[1])*weight_0*sign2/c2;
-        out[7] += (y[0]*n2[0] + y[1]*n2[1])*weight_1/c2;
-        out[8] += (y[0]*n2[0] + y[1]*n2[1])*weight_2*sign2/c2;
+        // n2 = (1, 1)
+        const Scalar scp = y[0] + y[1];
+        out[6] += scp*weight_0*sign2;
+        out[7] += scp*weight_1;
+        out[8] += scp*weight_2*sign2;
       }
 
       // a volume part is needed here for dofs: 9 10 11
@@ -138,9 +126,6 @@ namespace Dune
 
   private:
     typename LB::Traits::RangeFieldType sign0, sign1, sign2;
-    typename LB::Traits::DomainType m0, m1, m2;
-    typename LB::Traits::DomainType n0, n1, n2;
-    typename LB::Traits::RangeFieldType c0, c1, c2;
   };
 } // end namespace Dune
 #endif // DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI2_SIMPLEX2D_LOCALINTERPOLATION_HH
