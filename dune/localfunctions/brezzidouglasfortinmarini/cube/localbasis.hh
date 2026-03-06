@@ -19,6 +19,10 @@
 
 #include <dune/localfunctions/common/localbasis.hh>
 
+#ifdef BDFM_USE_RT0_BASIS
+#include <dune/localfunctions/raviartthomas/raviartthomas0cube3d/raviartthomas0cube3dall.hh>
+#endif
+
 namespace Dune
 {
   /**
@@ -40,18 +44,26 @@ namespace Dune
   };
 
 
-#ifndef DOXYGEN
+#ifdef BDFM_USE_RT0_BASIS
   template<class D, class R, unsigned int dim>
-  class BDFMCubeLocalBasis<D, R, dim, 0>
+  class BDFMCubeLocalBasis<D, R, dim, 0> : public RT0Cube3DLocalBasis< D, R >
   {
-    static_assert( AlwaysFalse<D>::value,
-                   "`BDFMCubeLocalBasis` not defined for order 0." );
-  };
-#endif // #ifndef DOXYGEN
+  public:
+    //! \brief Make set number s, where 0 <= s < 64
+    BDFMCubeLocalBasis (unsigned int s = 0) : RT0Cube3DLocalBasis< D, R >( s )
+    {
+    }
 
+    //! \brief Make set number s, where 0 <= s < 64
+    BDFMCubeLocalBasis (std::bitset<2*dim> s)
+      : RT0Cube3DLocalBasis< D, R >( s[0] )
+    {
+    }
+  };
+#endif
 
   /**
-   * \brief First order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrialteral.
+   * \brief First order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrilateral.
    *
    * \nosubgrouping
    */
@@ -143,7 +155,7 @@ namespace Dune
 
 
   /**
-   * \brief Second order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrialteral.
+   * \brief Second order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrilateral.
    *
    * \nosubgrouping
    */
@@ -267,7 +279,7 @@ namespace Dune
 
 
   /**
-   * \brief Third order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrialteral.
+   * \brief Third order Brezzi-Douglas-Fortin-Marini shape functions on the reference quadrilateral.
    *
    * \nosubgrouping
    */

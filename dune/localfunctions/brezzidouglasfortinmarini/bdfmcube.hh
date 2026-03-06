@@ -9,6 +9,9 @@
 
 #include <dune/localfunctions/common/localfiniteelementtraits.hh>
 
+// if enabled use the RT0 version for BDFM0 since these are the same elements
+#define BDFM_USE_RT0_BASIS
+
 #include <dune/localfunctions/brezzidouglasfortinmarini/cube/localbasis.hh>
 #include <dune/localfunctions/brezzidouglasfortinmarini/cube/localcoefficients.hh>
 #include <dune/localfunctions/brezzidouglasfortinmarini/cube/localinterpolation.hh>
@@ -78,4 +81,5 @@ namespace Dune
 
 } // namespace Dune
 
+#undef BDFM_USE_RT0_BASIS
 #endif // #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMCUBE_HH
