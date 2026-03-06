@@ -5,6 +5,11 @@
 #ifndef DUNE_LOCALFUNCTIONS_RAVIARTTHOMAS_SIMPLEX_HH
 #define DUNE_LOCALFUNCTIONS_RAVIARTTHOMAS_SIMPLEX_HH
 
+#if __GNUC__ >= 13
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+#endif
+
 #include <dune/localfunctions/utility/localfiniteelement.hh>
 #include "raviartthomassimplex/raviartthomassimplexbasis.hh"
 
@@ -51,5 +56,9 @@ namespace Dune
     {}
   };
 } // namespace Dune
+
+#if __GNUC__ >= 13
+#pragma GCC diagnostic pop
+#endif
 
 #endif // #ifndef DUNE_LOCALFUNCTIONS_RAVIARTTHOMAS_SIMPLEX_HH
