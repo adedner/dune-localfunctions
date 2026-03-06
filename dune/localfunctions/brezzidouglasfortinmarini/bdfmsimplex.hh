@@ -2,8 +2,8 @@
 // vi: set et ts=4 sw=2 sts=2:
 // SPDX-FileCopyrightInfo: Copyright © DUNE Project contributors, see file LICENSE.md in module root
 // SPDX-License-Identifier: LicenseRef-GPL-2.0-only-with-DUNE-exception
-#ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMCUBE_HH
-#define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMCUBE_HH
+#ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMSIMPLEX_HH
+#define DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMSIMPLEX_HH
 
 #include <dune/geometry/type.hh>
 
@@ -12,9 +12,9 @@
 // if enabled use the RT0 version for BDFM0 since these are the same elements
 #define BDFM_USE_RT0_BASIS
 
-#include <dune/localfunctions/brezzidouglasfortinmarini/cube/localbasis.hh>
-#include <dune/localfunctions/brezzidouglasfortinmarini/cube/localcoefficients.hh>
-#include <dune/localfunctions/brezzidouglasfortinmarini/cube/localinterpolation.hh>
+#include <dune/localfunctions/brezzidouglasfortinmarini/simplex/localbasis.hh>
+#include <dune/localfunctions/brezzidouglasfortinmarini/simplex/localcoefficients.hh>
+#include <dune/localfunctions/brezzidouglasfortinmarini/simplex/localinterpolation.hh>
 
 
 namespace Dune
@@ -27,11 +27,13 @@ namespace Dune
    *  Brezzi-Douglas-Marini (BDM) finite elements, where the order of
    *  the normal traces is lowered by one.
    *
-   *  On a quadrilateral K the BDFM element is given by
+   *  This implementation follows the description given by
    *
-   *  \f$BDFM_k = (P_k(K)\setminus\{y^k\})\times(P_k(K)\setminus\{x^k\})\quad(k\geq1)\f$
+   *  M. W. Scroggs, P. D. Brubeck, J. P. Dean, J. S. Dokken, I. Marsden, N. Nobre, et al.
+   *  DefElement: an encyclopedia of finite element definitions, 2020-2026,
+   *  https://defelement.org
    *
-   *  The BDFM1 element is identical to the RT0 element.
+   *  The BDFM0 element is identical to the RT0 element.
    *
    *  For further reading see
    *  Brezzi, Fortin "Mixed and Hybrid Finite Element Methods" (1991), Chapter III Section 3
@@ -44,24 +46,24 @@ namespace Dune
    * \tparam order  order of the element, must be >= 1.
    */
   template<class D, class R, unsigned int dim, unsigned int order>
-  class BDFMCubeLocalFiniteElement
+  class BDFMSimplexLocalFiniteElement
   {
-    using LocalBasis          = BDFMCubeLocalBasis<D, R, dim, order>;
-    using LocalCoefficients   = BDFMCubeLocalCoefficients<D, R, dim, order>;
-    using LocalInterpolation  = BDFMCubeLocalInterpolation<D, R, dim, order>;
+    using LocalBasis          = BDFMSimplexLocalBasis<D, R, dim, order>;
+    using LocalCoefficients   = BDFMSimplexLocalCoefficients<D, R, dim, order>;
+    using LocalInterpolation  = BDFMSimplexLocalInterpolation<D, R, dim, order>;
 
   public:
     using Traits = LocalFiniteElementTraits<LocalBasis, LocalCoefficients, LocalInterpolation  >;
 
     //! \brief Standard constructor
-    BDFMCubeLocalFiniteElement () {}
+    BDFMSimplexLocalFiniteElement () {}
 
     /**
-     * \brief Make set number  s, where 0 <= s < 2^(2*dim)
+     * \brief Make set number s, where 0 <= s < 8
      *
-     * \param s  Edge orientation indicator
+     * \param s Edge orientation indicator
      */
-    BDFMCubeLocalFiniteElement (std::bitset<2*dim> s)
+    BDFMSimplexLocalFiniteElement (int s)
       : basis( s ), interpolation( s )
     {}
 
@@ -82,4 +84,4 @@ namespace Dune
 } // namespace Dune
 
 #undef BDFM_USE_RT0_BASIS
-#endif // #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMCUBE_HH
+#endif // #ifndef DUNE_LOCALFUNCTIONS_BREZZIDOUGLASFORTINMARINI_BDFMSIMPLEX_HH
