@@ -55,15 +55,6 @@ namespace Dune
       {
         sign3 = -1.0;
       }
-
-      n0[0] = -1.0;
-      n0[1] =  0.0;
-      n1[0] =  1.0;
-      n1[1] =  0.0;
-      n2[0] =  0.0;
-      n2[1] = -1.0;
-      n3[0] =  0.0;
-      n3[1] =  1.0;
     }
 
     /**
@@ -99,32 +90,39 @@ namespace Dune
         localPos[0] = 0.0;
         localPos[1] = qPos;
         auto y = f(localPos);
-        out[0] += (y[0]*n0[0] + y[1]*n0[1])*weight_0*sign0;
-        out[1] += (y[0]*n0[0] + y[1]*n0[1])*weight_1;
+        // n0 = (-1, 0)
+        // compute y * n0 * ...
+        out[0] -= y[0]*weight_0*sign0;
+        out[1] -= y[0]*weight_1;
 
         localPos[0] = 1.0;
         localPos[1] = qPos;
         y = f(localPos);
-        out[2] += (y[0]*n1[0] + y[1]*n1[1])*weight_0*sign1;
-        out[3] += (y[0]*n1[0] + y[1]*n1[1])*(-weight_1);
+        // n1 = (1, 0)
+        // compute y * n1 * ...
+        out[2] += y[0]*weight_0*sign1;
+        out[3] -= y[0]*weight_1;
 
         localPos[0] = qPos;
         localPos[1] = 0.0;
         y = f(localPos);
-        out[4] += (y[0]*n2[0] + y[1]*n2[1])*weight_0*sign2;
-        out[5] += (y[0]*n2[0] + y[1]*n2[1])*(-weight_1);
+        // n2 = (0, -1)
+        // compute y * n2 * ...
+        out[4] -= y[1]*weight_0*sign2;
+        out[5] += y[1]*weight_1;
 
         localPos[0] = qPos;
         localPos[1] = 1.0;
         y = f(localPos);
-        out[6] += (y[0]*n3[0] + y[1]*n3[1])*weight_0*sign3;
-        out[7] += (y[0]*n3[0] + y[1]*n3[1])*weight_1;
+        // n2 = (0, 1)
+        // compute y * n3 * ...
+        out[6] += y[1]*weight_0*sign3;
+        out[7] += y[1]*weight_1;
       }
     }
 
   private:
     typename LB::Traits::RangeFieldType sign0, sign1, sign2, sign3;
-    typename LB::Traits::DomainType n0, n1, n2, n3;
   };
 }
 #endif // DUNE_LOCALFUNCTIONS_BREZZIDOUGLASMARINI1_CUBE2D_LOCALINTERPOLATION_HH
