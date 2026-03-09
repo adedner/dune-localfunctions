@@ -21,6 +21,7 @@ add_subdirectory(utility)
 add_subdirectory(whitney)
 
 install(FILES
+  brezzidouglasfortinmarini.hh
   brezzidouglasmarini.hh
   crouzeixraviart.hh
   dualmortarbasis.hh
