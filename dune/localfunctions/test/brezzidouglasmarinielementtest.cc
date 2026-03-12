@@ -18,8 +18,9 @@ int main(int argc, char** argv)
 
   Dune::BrezziDouglasMariniCubeLocalFiniteElement<double,double,3,1> bdm1cube3dlfem(1);
   // \todo Implement the missing LocalInterpolation
-  // DisableRepresentConstants is only set because the test also uses DisableLocalInterpolation internally.
-  TEST_FE2(bdm1cube3dlfem, DisableLocalInterpolation + DisableRepresentConstants);
+  // DisableSIMDINterpolation and DisableRepresentConstants are only set
+  // because the tests also use DisableLocalInterpolation internally.
+  TEST_FE2(bdm1cube3dlfem, DisableLocalInterpolation + DisableRepresentConstants + DisableSimdInterpolation);
 
   Dune::BrezziDouglasMariniCubeLocalFiniteElement<double,double,2,2> bdm2cube2dlfem(1);
   TEST_FE(bdm2cube2dlfem);
