@@ -159,7 +159,7 @@ namespace Dune
   template< class F2, class F1 >
   inline void field_cast ( const F1 &f1, F2 &f2 )
   {
-    f2 = f1;
+    f2 = F2(f1);
   }
 
 #if HAVE_GMP
