@@ -28,11 +28,11 @@
  */
 
 #if HAVE_GMP
-typedef Dune::GMPField< 128 > StorageField;
-typedef Dune::GMPField< 512 > ComputeField;
+using StorageField = Dune::GMPField< 128 >;
+using ComputeField = Dune::GMPField< 512 >;
 #else
-typedef double StorageField;
-typedef double ComputeField;
+using StorageField = double;
+using ComputeField = double;
 #endif
 
 template< Dune::GeometryType::Id geometryId >
@@ -44,7 +44,7 @@ bool test(unsigned int order)
   for (unsigned int o = 0; o <= order; ++o)
   {
     std::cout << "Testing " << geometry << " with order " << o << std::endl;
-    typedef Dune::RaviartThomasBasisFactory<geometry.dim(),StorageField,ComputeField> BasisFactory;
+    using BasisFactory = Dune::RaviartThomasBasisFactory<geometry.dim(),StorageField,ComputeField>;
     const typename BasisFactory::Object &basis = *BasisFactory::template create<geometry>(o);
 
     // define the macro TEST_OUTPUT_FUNCTIONS to output files containing functions and
@@ -57,8 +57,9 @@ bool test(unsigned int order)
     Dune::basisPrint<1,BasisFactory,typename BasisFactory::StorageField,geometry>(out,basis);
 #endif // TEST_OUTPUT_FUNCTIONS
 
-    // test interpolation
-    typedef Dune::RaviartThomasL2InterpolationFactory<geometry.dim(),StorageField> InterpolationFactory;
+    // Test internal interface: Interpolation of basis
+    using std::abs;
+    using InterpolationFactory = Dune::RaviartThomasL2InterpolationFactory<geometry.dim(),StorageField>;
     const typename InterpolationFactory::Object &interpol = *InterpolationFactory::template create<geometry>(o);
     Dune::DynamicMatrix<StorageField> matrix;
     interpol.interpolate(basis,matrix);
@@ -66,7 +67,7 @@ bool test(unsigned int order)
       matrix[i][i]-=1;
     for (unsigned int i=0; i<matrix.rows(); ++i)
       for (unsigned int j=0; j<matrix.cols(); ++j)
-        if ( std::abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
+        if ( abs( matrix[i][j] ) > 1000.*Dune::Zero<double>::epsilon() )
           std::cout << "  non-zero entry in interpolation matrix: "
                     << "(" << i << "," << j << ") = " << Dune::field_cast<double>(matrix[i][j])
                     << std::endl;

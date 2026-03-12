@@ -6,9 +6,11 @@
 #ifndef DUNE_LOCALFUNCTIONS_META_POWER_INTERPOLATION_HH
 #define DUNE_LOCALFUNCTIONS_META_POWER_INTERPOLATION_HH
 
+#include <dune/common/fvector.hh>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <type_traits>
 #include <vector>
 
 namespace Dune {
@@ -31,7 +33,7 @@ namespace Dune {
 
   public:
     //! Export basis traits
-    typedef BasisTraits Traits;
+    using Traits = BasisTraits;
 
     //! Construct a PowerInterpolation
     /**
@@ -54,10 +56,11 @@ namespace Dune {
         f(f_), comp(comp_)
       { }
 
-      typename Backend::Traits::Range operator()(const typename Backend::Traits::DomainLocal &x) const
+      auto operator()(const typename Backend::Traits::DomainLocal &x) const
       {
-        typename Traits::Range fy = f(x);
-        typename Backend::Traits::Range y;
+        auto fy = f(x);
+        using FRangeType = std::decay_t<decltype(fy)>;
+        Dune::FieldVector<typename FRangeType::field_type, 1> y;
         y[0] = fy[comp];
         return y;
       }

@@ -5,9 +5,11 @@
 #ifndef GENERIC_INTERPOLATIONHELPER_HH
 #define GENERIC_INTERPOLATIONHELPER_HH
 
+#include <type_traits>
 #include <vector>
 
 #include <dune/common/fvector.hh>
+#include <dune/common/ftraits.hh>
 #include <dune/common/concept.hh>
 #include <dune/localfunctions/utility/field.hh>
 
@@ -27,7 +29,9 @@ namespace Dune
   struct InterpolationHelper<F,d>::Helper<Func,Vector,true>
   // Func is of Function type
   {
-    typedef std::vector< Dune::FieldVector<F,d> > Result;
+    using ResultFieldType = typename FieldTraits<std::decay_t<decltype(std::declval<Vector>()[0])>>::field_type;
+    using ResultType = FieldVector<ResultFieldType, d>;
+    using ResultVector = std::vector< ResultType >;
     Helper(const Func & func, Vector &vec)
       : func_(func),
         vec_(vec),
@@ -54,7 +58,7 @@ namespace Dune
       vec_[row] += field_cast<typename Vector::value_type>(val);
     }
     template <class DomainVector>
-    const Result &evaluate(const DomainVector &x) const
+    const ResultVector &evaluate(const DomainVector &x) const
     {
       field_cast(func_(x), tmp_[0] );
       return tmp_;
@@ -65,14 +69,14 @@ namespace Dune
     }
     const Func &func_;
     Vector &vec_;
-    mutable Result tmp_;
+    mutable ResultVector tmp_;
   };
   template <class F,unsigned int d>
   template <class Basis,class Matrix>
   struct InterpolationHelper<F,d>::Helper<Basis,Matrix,false>
   // Func is of Basis type
   {
-    typedef std::vector< Dune::FieldVector<F,d> > Result;
+    using ResultType = std::vector<Dune::FieldVector<typename Matrix::field_type,d>>;
     Helper(const Basis & basis, Matrix &matrix)
       : basis_(basis),
         matrix_(matrix),
@@ -102,7 +106,7 @@ namespace Dune
       matrix_[row][col] += val;
     }
     template <class DomainVector>
-    const Result &evaluate(const DomainVector &x) const
+    const ResultType &evaluate(const DomainVector &x) const
     {
       basis_.template evaluate<0>(x,tmp_);
       return tmp_;
@@ -114,7 +118,7 @@ namespace Dune
 
     const Basis &basis_;
     Matrix &matrix_;
-    mutable Result tmp_;
+    mutable ResultType tmp_;
   };
 }
 #endif // GENERIC_INTERPOLATIONHELPER_HH

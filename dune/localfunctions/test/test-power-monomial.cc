@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <iostream>
 #include <ostream>
+#include <type_traits>
 #include <utility>
 
 #include <dune/common/exceptions.hh>
@@ -48,8 +49,10 @@ static void Order(int &result)
 
           std::cout << "=== GeometryType " << geo.type() << std::endl;
 
+          auto fe = feFactory.make(backendFEFactory.make(geo));
+          typedef std::decay_t<decltype(fe)> FE;
           bool success =
-            testFE(geo, feFactory.make(backendFEFactory.make(geo)), eps,
+            testFE<Geometry,FE,true>(geo, feFactory.make(backendFEFactory.make(geo)), eps,
                    delta);
 
           if(success && result != 1)

@@ -61,7 +61,7 @@ namespace Dune
       {
         basis().evaluate( qp.position(), basisValues );
         auto val = function( qp.position() );
-        RangeVector factor = field_cast< DofField >( val );
+        RangeVector factor = DofField( val );
         factor *= field_cast< DofField >( qp.weight() );
         for( unsigned int i = 0; i < size; ++i )
           coefficients[ i ] += factor * basisValues[ i ];
@@ -115,14 +115,16 @@ namespace Dune
     void interpolate ( const Function &function, std::vector< DofField > &coefficients ) const
     {
       const unsigned size = Base::basis().size();
-      Base::interpolate(function,val_);
+      auto tmp = coefficients;
+      tmp.resize( size );
+      Base::interpolate(function,tmp);
       coefficients.resize( size );
       for (unsigned int i=0; i<size; ++i)
       {
         coefficients[i] = 0;
         for (unsigned int j=0; j<size; ++j)
         {
-          coefficients[i] += field_cast<DofField>(massMatrix_[i][j]*val_[j]);
+          coefficients[i] += field_cast<DofField>(DofField(massMatrix_[i][j])*tmp[j]);
         }
       }
     }
