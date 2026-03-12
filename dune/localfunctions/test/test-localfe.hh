@@ -159,9 +159,12 @@ bool testRandomInterpolation(const FE& fe, double eps=1e-12, int n=1)
     }
 
     // Check if interpolation weights are equal to coefficients
+    RangeFieldType ref(1.0);
+    for(std::size_t j=0; j<coeff.size() && success; ++j)
+      ref = max(coeff[j][0] , ref);
     for(std::size_t j=0; j<coeff.size() && success; ++j) {
       if ( Dune::Simd::anyTrue(abs(coeff[j][0]-f.coeff[j][0]) >
-                              (2*coeff.size()*eps)*(max(abs(f.coeff[j][0]), RangeFieldType(1.0))) ))
+                              (2*coeff.size()*eps)*ref)) // Check rel. error for 2*size Flop
       {
         std::cout << std::setprecision(16);
         std::cout << "Bug in LocalInterpolation for finite element type "
