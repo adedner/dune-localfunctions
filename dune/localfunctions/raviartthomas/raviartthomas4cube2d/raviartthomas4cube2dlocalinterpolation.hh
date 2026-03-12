@@ -6,7 +6,7 @@
 #define DUNE_LOCALFUNCTIONS_RAVIARTTHOMAS4_CUBE2D_LOCALINTERPOLATION_HH
 
 #include <vector>
-
+#include <dune/common/math.hh>
 #include <dune/geometry/quadraturerules.hh>
 
 namespace Dune
@@ -94,7 +94,7 @@ namespace Dune
         out[1] += (y[0]*n0[0] + y[1]*n0[1])*(2.0*qPos - 1.0)*it->weight();
         out[2] += (y[0]*n0[0] + y[1]*n0[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign0;
         out[3] += (y[0]*n0[0] + y[1]*n0[1])*(20.0*qPos*qPos*qPos - 30.0*qPos*qPos + 12.0*qPos - 1.0)*it->weight();
-        out[4] += (y[0]*n0[0] + y[1]*n0[1])*(1.0-20.0*qPos+90.0*pow(qPos,2)-140.0*pow(qPos,3)+70.0*pow(qPos,4))*it->weight()*sign0;
+        out[4] += (y[0]*n0[0] + y[1]*n0[1])*(1.0-20.0*qPos+90.0*power(qPos,2)-140.0*power(qPos,3)+70.0*power(qPos,4))*it->weight()*sign0;
 
         localPos[0] = 1.0;
         localPos[1] = qPos;
@@ -103,7 +103,7 @@ namespace Dune
         out[6] += (y[0]*n1[0] + y[1]*n1[1])*(1.0 - 2.0*qPos)*it->weight();
         out[7] += (y[0]*n1[0] + y[1]*n1[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign1;
         out[8] += (y[0]*n1[0] + y[1]*n1[1])*(-20.0*qPos*qPos*qPos + 30.0*qPos*qPos - 12.0*qPos + 1.0)*it->weight();
-        out[9] += (y[0]*n1[0] + y[1]*n1[1])*(1.0-20.0*qPos+90.0*pow(qPos,2)-140.0*pow(qPos,3)+70.0*pow(qPos,4))*it->weight()*sign1;
+        out[9] += (y[0]*n1[0] + y[1]*n1[1])*(1.0-20.0*qPos+90.0*power(qPos,2)-140.0*power(qPos,3)+70.0*power(qPos,4))*it->weight()*sign1;
 
         localPos[0] = qPos;
         localPos[1] = 0.0;
@@ -112,7 +112,7 @@ namespace Dune
         out[11] += (y[0]*n2[0] + y[1]*n2[1])*(1.0 - 2.0*qPos)*it->weight();
         out[12] += (y[0]*n2[0] + y[1]*n2[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign2;
         out[13] += (y[0]*n2[0] + y[1]*n2[1])*(-20.0*qPos*qPos*qPos + 30.0*qPos*qPos - 12.0*qPos + 1.0)*it->weight();
-        out[14] += (y[0]*n2[0] + y[1]*n2[1])*(1.0-20.0*qPos+90.0*pow(qPos,2)-140.0*pow(qPos,3)+70.0*pow(qPos,4))*it->weight()*sign2;
+        out[14] += (y[0]*n2[0] + y[1]*n2[1])*(1.0-20.0*qPos+90.0*power(qPos,2)-140.0*power(qPos,3)+70.0*power(qPos,4))*it->weight()*sign2;
 
         localPos[0] = qPos;
         localPos[1] = 1.0;
@@ -121,7 +121,7 @@ namespace Dune
         out[16] += (y[0]*n3[0] + y[1]*n3[1])*(2.0*qPos - 1.0)*it->weight();
         out[17] += (y[0]*n3[0] + y[1]*n3[1])*(6.0*qPos*qPos - 6.0*qPos + 1.0)*it->weight()*sign3;
         out[18] += (y[0]*n3[0] + y[1]*n3[1])*(20.0*qPos*qPos*qPos - 30.0*qPos*qPos + 12.0*qPos - 1.0)*it->weight();
-        out[19] += (y[0]*n3[0] + y[1]*n3[1])*(1.0-20.0*qPos+90.0*pow(qPos,2)-140.0*pow(qPos,3)+70.0*pow(qPos,4))*it->weight()*sign3;
+        out[19] += (y[0]*n3[0] + y[1]*n3[1])*(1.0-20.0*qPos+90.0*power(qPos,2)-140.0*power(qPos,3)+70.0*power(qPos,4))*it->weight()*sign3;
       }
 
       const QuadratureRule<Vector,2>& rule2 = QuadratureRules<Vector,2>::rule(GeometryTypes::cube(2), qOrder);
@@ -141,8 +141,8 @@ namespace Dune
         l[1][2]=6.0*qPos[1]*qPos[1]-6.0*qPos[1]+1.0;
         l[0][3]=20.0*qPos[0]*qPos[0]*qPos[0] - 30.0*qPos[0]*qPos[0] + 12.0*qPos[0] - 1.0;
         l[1][3]=20.0*qPos[1]*qPos[1]*qPos[1] - 30.0*qPos[1]*qPos[1] + 12.0*qPos[1] - 1.0;
-        l[0][4]=1.0-20.0*qPos[0]+90.0*pow(qPos[0],2)-140.0*pow(qPos[0],3)+70.0*pow(qPos[0],4);
-        l[1][4]=1.0-20.0*qPos[1]+90.0*pow(qPos[1],2)-140.0*pow(qPos[1],3)+70.0*pow(qPos[1],4);
+        l[0][4]=1.0-20.0*qPos[0]+90.0*power(qPos[0],2)-140.0*power(qPos[0],3)+70.0*power(qPos[0],4);
+        l[1][4]=1.0-20.0*qPos[1]+90.0*power(qPos[1],2)-140.0*power(qPos[1],3)+70.0*power(qPos[1],4);
 
         for (int i=0;i<4;i++)
           for (int j=0;j<5;j++)
