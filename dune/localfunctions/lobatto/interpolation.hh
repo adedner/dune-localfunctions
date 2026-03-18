@@ -26,7 +26,6 @@
 
 #include <dune/localfunctions/common/localbasis.hh>
 #include <dune/localfunctions/common/localfiniteelementtraits.hh>
-#include <dune/localfunctions/common/localinterpolation.hh>
 #include <dune/localfunctions/common/localkey.hh>
 #include <dune/localfunctions/lobatto/common.hh>
 #include <dune/localfunctions/lobatto/lobatto.hh>
@@ -135,7 +134,7 @@ public:
    * \param[out] out Array of function values
    */
   template<class F, class C>
-  void interpolate (const F& ff, std::vector<C>& out) const
+  void interpolate (const F& f, std::vector<C>& out) const
   {
     out.resize(localBasis_.size());
 
@@ -145,7 +144,7 @@ public:
     auto refElem = referenceElement<D,dim>(type_);
     auto const& orders = localBasis_.orders();
 
-    auto&& f = Impl::makeFunctionWithCallOperator<typename LocalBasis::Traits::DomainType>(ff);
+    // auto&& f = Impl::makeFunctionWithCallOperator<typename LocalBasis::Traits::DomainType>(ff);
 
     unsigned int idx = 0;
 
