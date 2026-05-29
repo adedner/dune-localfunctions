@@ -27,6 +27,7 @@
 #include <dune/localfunctions/common/localbasis.hh>
 #include <dune/localfunctions/common/localfiniteelementtraits.hh>
 #include <dune/localfunctions/common/localkey.hh>
+#include <dune/localfunctions/utility/tensorview.hh>
 
 namespace Dune { namespace Impl
 {
@@ -326,27 +327,29 @@ namespace Dune { namespace Impl
     using Traits = LocalBasisTraits<D,dim,FieldVector<D,dim>,R,1,FieldVector<R,1>,FieldMatrix<R,1,dim> >;
 
     //! \brief Evaluate all shape functions
-    void evaluateFunction(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::RangeType>& out) const
+    template <class TensorView>
+      requires (TensorView::rank() == 1)
+    void evaluateFunction(const typename Traits::DomainType& x, TensorView out) const
     {
+      assert(out.extent(0) == size());
+
       const int k = order();
-      out.resize(size());
 
       // Specialization for zero-order case
       if (k==0)
       {
-        out[0] = 1;
+        out(0) = 1;
         return;
       }
 
       // Specialization for first-order case
       if (k==1)
       {
-        out[0] = 1.0;
+        out(0) = 1.0;
         for (size_t i=0; i<dim; i++)
         {
-          out[0]  -= x[i];
-          out[i+1] = x[i];
+          out(0)  -= x[i];
+          out(i+1) = x[i];
         }
         return;
       }
@@ -363,7 +366,7 @@ namespace Dune { namespace Impl
         unsigned int n = 0;
         for (auto i0 : Dune::range(k + 1))
           for (auto i1 : std::array{k - i0})
-            out[n++] = L(0,i0) * L(1,i1);
+            out(n++) = L(0,i0) * L(1,i1);
         return;
       }
       if (dim==2)
@@ -372,7 +375,7 @@ namespace Dune { namespace Impl
         for (auto i1 : Dune::range(k + 1))
           for (auto i0 : Dune::range(k - i1 + 1))
             for (auto i2 : std::array{k - i1 - i0})
-              out[n++] = L(0,i0) * L(1,i1) * L(2,i2);
+              out(n++) = L(0,i0) * L(1,i1) * L(2,i2);
         return;
       }
       if (dim==3)
@@ -382,11 +385,20 @@ namespace Dune { namespace Impl
           for (auto i1 : Dune::range(k - i2 + 1))
             for (auto i0 : Dune::range(k - i2 - i1 + 1))
               for (auto i3 : std::array{k - i2 - i1 - i0})
-                out[n++] = L(0,i0) * L(1,i1)  * L(2,i2) * L(3,i3);
+                out(n++) = L(0,i0) * L(1,i1)  * L(2,i2) * L(3,i3);
         return;
       }
 
       DUNE_THROW(NotImplemented, "LagrangeSimplexLocalBasis for k>=2 only implemented for dim<=3");
+    }
+
+    //! \brief Evaluate all shape functions
+    void evaluateFunction(const typename Traits::DomainType& x,
+                          std::vector<typename Traits::RangeType>& out) const
+    {
+      out.resize(size());
+      TensorView<typename Traits::RangeFieldType, std::dynamic_extent> wrapper([&out](auto i0) -> auto& { return out[i0][0]; }, size());
+      evaluateFunction(x,wrapper);
     }
 
     /** \brief Evaluate Jacobian of all shape functions
@@ -394,27 +406,29 @@ namespace Dune { namespace Impl
      * \param x Point in the reference simplex where to evaluation the Jacobians
      * \param[out] out The Jacobians of all shape functions at the point x
      */
-    void evaluateJacobian(const typename Traits::DomainType& x,
-                          std::vector<typename Traits::JacobianType>& out) const
+    template <class TensorView>
+      requires (TensorView::rank() == 2)
+    void evaluateJacobian(const typename Traits::DomainType& x, TensorView out) const
     {
       const int k = order();
-      out.resize(size());
 
       // Specialization for k==0
       if (k==0)
       {
-        std::fill(out[0][0].begin(), out[0][0].end(), 0);
+        for (std::size_t j = 0; j < dim; ++j)
+          out(0,j) = 0;
         return;
       }
 
       // Specialization for k==1
       if (k==1)
       {
-        std::fill(out[0][0].begin(), out[0][0].end(), -1);
+        for (std::size_t j = 0; j < dim; ++j)
+          out(0,j) = -1;
 
         for (unsigned int i=0; i<dim; i++)
           for (unsigned int j=0; j<dim; j++)
-            out[i+1][0][j] = (i==j);
+            out(i+1,j) = (i==j);
 
         return;
       }
@@ -434,7 +448,7 @@ namespace Dune { namespace Impl
         {
           for (auto i1 : std::array{k-i0})
           {
-            out[n][0][0] = (L(0,1,i0) * L(1,0,i1) - L(0,0,i0) * L(1,1,i1))*k;
+            out(n,0) = (L(0,1,i0) * L(1,0,i1) - L(0,0,i0) * L(1,1,i1))*k;
             ++n;
           }
         }
@@ -449,8 +463,8 @@ namespace Dune { namespace Impl
           {
             for (auto i2 : std::array{k - i1 - i0})
             {
-              out[n][0][0] = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k;
-              out[n][0][1] = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k;
+              out(n,0) = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k;
+              out(n,1) = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) - L(0,0,i0) * L(1,0,i1) * L(2,1,i2))*k;
               ++n;
             }
           }
@@ -468,9 +482,9 @@ namespace Dune { namespace Impl
             {
               for (auto i3 : std::array{k - i2 - i1 - i0})
               {
-                out[n][0][0] = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
-                out[n][0][1] = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
-                out[n][0][2] = (L(0,0,i0) * L(1,0,i1) * L(2,1,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
+                out(n,0) = (L(0,1,i0) * L(1,0,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
+                out(n,1) = (L(0,0,i0) * L(1,1,i1) * L(2,0,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
+                out(n,2) = (L(0,0,i0) * L(1,0,i1) * L(2,1,i2) * L(3,0,i3) - L(0,0,i0) * L(1,0,i1) * L(2,0,i2) * L(3,1,i3))*k;
                 ++n;
               }
             }
@@ -483,20 +497,30 @@ namespace Dune { namespace Impl
       DUNE_THROW(NotImplemented, "LagrangeSimplexLocalBasis for k>=2 only implemented for dim<=3");
     }
 
+    void evaluateJacobian(const typename Traits::DomainType& x,
+                          std::vector<typename Traits::JacobianType>& out) const
+    {
+      out.resize(size());
+      TensorView<typename Traits::RangeFieldType, std::dynamic_extent, dim> wrapper([&out](auto i0, auto i1) -> auto& { return out[i0][0][i1]; }, size());
+      evaluateJacobian(x,wrapper);
+    }
+
     /** \brief Evaluate partial derivatives of any order of all shape functions
      *
      * \param partialOrders Order of the partial derivatives, in the classic multi-index notation
      * \param in Position where to evaluate the derivatives
      * \param[out] out The desired partial derivatives
      */
+    template <class TensorView>
+      requires (TensorView::rank() == 1)
     void partial(const std::array<unsigned int,dim>& partialOrders,
                  const typename Traits::DomainType& in,
-                 std::vector<typename Traits::RangeType>& out) const
+                 TensorView out) const
     {
       const int k = order();
       int totalOrder = std::accumulate(partialOrders.begin(), partialOrders.end(), 0u);
 
-      out.resize(size());
+      assert(out.extent(0) == size());
 
       // Derivative order zero corresponds to the function evaluation.
       if (totalOrder == 0)
@@ -508,8 +532,8 @@ namespace Dune { namespace Impl
       // Derivatives of order >k are all zero.
       if (totalOrder > k)
       {
-        for(auto& out_i : out)
-          out_i = 0;
+        for(std::size_t i = 0; i < out.extent(0); ++i)
+          out(i) = 0;
         return;
       }
 
@@ -520,9 +544,9 @@ namespace Dune { namespace Impl
         if (totalOrder==1)
         {
           auto direction = std::find(partialOrders.begin(), partialOrders.end(), 1);
-          out[0] = -1;
+          out(0) = -1;
           for (unsigned int i=0; i<dim; i++)
-            out[i+1] = (i==(direction-partialOrders.begin()));
+            out(i+1) = (i==(direction-partialOrders.begin()));
         }
         return;
       }
@@ -557,7 +581,7 @@ namespace Dune { namespace Impl
           unsigned int n = 0;
           for (auto i0 : Dune::range(k + 1))
             for (auto i1 : std::array{k - i0})
-              out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1});
+              out(n++) = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1});
         }
         if constexpr (dim==2)
         {
@@ -565,7 +589,7 @@ namespace Dune { namespace Impl
           for (auto i1 : Dune::range(k + 1))
             for (auto i0 : Dune::range(k - i1 + 1))
               for (auto i2 : std::array{k - i1 - i0})
-                out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2});
+                out(n++) = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2});
         }
         if constexpr (dim==3)
         {
@@ -574,9 +598,18 @@ namespace Dune { namespace Impl
             for (auto i1 : Dune::range(k - i2 + 1))
               for (auto i0 : Dune::range(k - i2 - i1 + 1))
                 for (auto i3 : std::array{k - i2 - i1 - i0})
-                  out[n++] = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2, i3});
+                  out(n++) = barycentricDerivative(barycentricOrder, L, k, BarycentricMultiIndex{i0, i1, i2, i3});
         }
       });
+    }
+
+    void partial(const std::array<unsigned int,dim>& partialOrders,
+                 const typename Traits::DomainType& x,
+                 std::vector<typename Traits::RangeType>& out) const
+    {
+      out.resize(size());
+      TensorView<typename Traits::RangeFieldType, std::dynamic_extent> wrapper([&out](auto i0) -> auto& { return out[i0][0]; }, size());
+      partial(partialOrders,x,wrapper);
     }
   };
 

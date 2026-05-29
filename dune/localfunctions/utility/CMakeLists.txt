@@ -16,4 +16,5 @@ install(FILES
   multiindex.hh
   polynomialbasis.hh
   tensor.hh
+  tensorview.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/localfunctions/utility)
