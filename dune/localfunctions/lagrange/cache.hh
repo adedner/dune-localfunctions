@@ -70,7 +70,7 @@ private:
 /** \brief A cache that stores all available Pk/Qk like local finite elements for the given dimension and order
  * for the case that the GeometryType is fixed and has the given Id.
  *
- * \tparam id  The Id of the fixed GeometryType
+ * \tparam topologyId  The topology id of the fixed GeometryType
  * \tparam Domain Type used for domain coordinates
  * \tparam Range Type used for shape function values
  * \tparam dim Element dimension
@@ -78,10 +78,12 @@ private:
  *
  * The cached finite element implementations can be obtained using get(GeometryType).
  */
-template <GeometryType::Id id, class Domain, class Range, std::size_t dim, std::size_t order>
+template <unsigned int topologyId, class Domain, class Range, std::size_t dim, std::size_t order>
 class StaticLagrangeLocalFiniteElementCache
 {
   struct UnknownToplogy {};
+
+  static constexpr GeometryType::Id id = GeometryType(dim,topologyId);
 
   static constexpr bool isSimplex = GeometryType(id).isSimplex();
   static constexpr bool isCube = GeometryType(id).isCube();
@@ -123,12 +125,12 @@ private:
  *
  * The cached finite element implementations can be obtained using get(GeometryType).
  *
- * \note This is a specialization of the fixed-geometry type LFE cache for the ID `GeometryType::Id(~0u)`.
+ * \note This is a specialization of the fixed-geometry type LFE cache for the topology id `~0u`.
  * This is given by the default `topologyId` in the capability `Dune::Capabilities::hasSingleGeometryType`
  * that can be extracted from grids with support for mixed geometry types.
  */
 template <class Domain, class Range, std::size_t dim, std::size_t order>
-class StaticLagrangeLocalFiniteElementCache<GeometryType::Id(~0u), Domain, Range, dim, order>
+class StaticLagrangeLocalFiniteElementCache<~0u, Domain, Range, dim, order>
     : public LagrangeLocalFiniteElementCache<Domain,Range,dim,order>
 {
   using Base = LagrangeLocalFiniteElementCache<Domain,Range,dim,order>;
