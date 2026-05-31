@@ -326,6 +326,9 @@ namespace Dune { namespace Impl
   public:
     using Traits = LocalBasisTraits<D,dim,FieldVector<D,dim>,R,1,FieldVector<R,1>,FieldMatrix<R,1,dim> >;
 
+    //! The shape of the range type
+    using Extents = Std::extents<int>;  // A 0-tensor = scalar
+
     //! \brief Evaluate all shape functions
     template <class TensorView>
       requires (TensorView::rank() == 1)
@@ -397,8 +400,8 @@ namespace Dune { namespace Impl
                           std::vector<typename Traits::RangeType>& out) const
     {
       out.resize(size());
-      TensorView<typename Traits::RangeFieldType, std::dynamic_extent> wrapper([&out](auto i0) -> auto& { return out[i0][0]; }, size());
-      evaluateFunction(x,wrapper);
+      auto extents = Std::extents<int,std::dynamic_extent>{size()};
+      evaluateFunction(x,TensorView([&out](auto i) -> auto& { return out[i]; }, extents));
     }
 
     /** \brief Evaluate Jacobian of all shape functions
@@ -501,8 +504,8 @@ namespace Dune { namespace Impl
                           std::vector<typename Traits::JacobianType>& out) const
     {
       out.resize(size());
-      TensorView<typename Traits::RangeFieldType, std::dynamic_extent, dim> wrapper([&out](auto i0, auto i1) -> auto& { return out[i0][0][i1]; }, size());
-      evaluateJacobian(x,wrapper);
+      auto extents = Std::extents<int,std::dynamic_extent,dim>{size()};
+      evaluateJacobian(x,TensorView([&out](auto i, auto j) -> auto& { return out[i][j]; }, extents));
     }
 
     /** \brief Evaluate partial derivatives of any order of all shape functions
@@ -608,8 +611,8 @@ namespace Dune { namespace Impl
                  std::vector<typename Traits::RangeType>& out) const
     {
       out.resize(size());
-      TensorView<typename Traits::RangeFieldType, std::dynamic_extent> wrapper([&out](auto i0) -> auto& { return out[i0][0]; }, size());
-      partial(partialOrders,x,wrapper);
+      auto extents = Std::extents<int,std::dynamic_extent>{size()};
+      partial(partialOrders, x,TensorView([&out](auto i) -> auto& { return out[i]; }, extents));
     }
   };
 

@@ -8,6 +8,7 @@
 
 
 #include <array>
+#include <dune/common/indices.hh>
 #include <functional>
 #include <tuple>
 #include <type_traits>
@@ -29,43 +30,37 @@ namespace Dune {
  * \tparam Element  The element type stored in the tensor
  * \tparam extents  Individual static extents or std::dynamic_extent
  **/
-template <class Element, std::size_t... exts>
+template <class View, std::size_t ext0, std::size_t... exts>
 class TensorView
 {
 public:
-  using extents_type = Std::extents<int,exts...>;
+  using view_type = View;
+  using extents_type = Std::extents<int,ext0,exts...>;
   using size_type = typename extents_type::size_type;
   using rank_type = typename extents_type::rank_type;
   using index_type = typename extents_type::rank_type;
 
-  using element_type = Element;
+  using reference = decltype(std::declval<View>()(0u,exts...));
+  using element_type = std::remove_reference_t<reference>;
   using value_type = std::remove_const_t<element_type>;
-  using reference = std::add_lvalue_reference_t<element_type>;
-  using pointer = std::add_pointer_t<std::remove_reference_t<reference>>;
-
-private:
-  template <class Seq>
-  struct ViewTraits;
-
-  template <std::size_t... II>
-  struct ViewTraits<std::index_sequence<II...>>
-  {
-    template <std::size_t> using IndexType = index_type;
-
-    using type = std::function<reference(IndexType<II>...)>;
-  };
 
 public:
-  using view_type = typename ViewTraits<std::make_index_sequence<sizeof...(exts)>>::type;
 
   /// \name TensorView constructors
   /// @{
 
   /// \brief Constructor stores the tensor in a span and stores the view functor by value
-  template <class View, std::convertible_to<std::size_t>... Extents>
-  constexpr TensorView (View view, Extents... extents) noexcept
+  template <std::convertible_to<std::size_t>... Extents>
+  constexpr explicit TensorView (View view, Extents... extents) noexcept
     : view_(std::move(view))
     , extents_(extents...)
+  {}
+
+  template <class Extents>
+    requires (std::is_constructible_v<extents_type, std::decay_t<Extents>>)
+  constexpr TensorView (View view, Extents&& extents) noexcept
+    : view_(std::move(view))
+    , extents_(std::forward<Extents>(extents))
   {}
 
   /// @}
@@ -85,6 +80,20 @@ public:
   constexpr reference operator[] (const std::array<Index,extents_type::rank()>& indices) const
   {
     return std::apply([&](auto... i) -> reference { return view_(i...); }, indices);
+  }
+
+  /// \brief Create a slice by fixing the first dimension at `index`
+  template <std::convertible_to<index_type> Index>
+  constexpr decltype(auto) operator[] (const Index& index) const
+  {
+    if constexpr (extents_type::rank() == 1)
+      return view_(index);
+    else
+      return unpackIntegerSequence([&](auto j0, auto... jj) {
+        return Dune::TensorView{
+          [i0=index, view=view_](auto... ii) -> reference { return view(i0,ii...); },
+          Std::extents<index_type,exts...>(extents_.extent(jj)...)};
+      }, std::make_index_sequence<1+sizeof...(exts)>{});
   }
 
   /// @}
@@ -114,6 +123,9 @@ private:
   view_type view_;
   DUNE_NO_UNIQUE_ADDRESS extents_type extents_;
 };
+
+template <class View, class I, std::size_t... exts>
+TensorView (View, Std::extents<I,exts...>) -> TensorView<View,exts...>;
 
 } // end namespace Dune
 
