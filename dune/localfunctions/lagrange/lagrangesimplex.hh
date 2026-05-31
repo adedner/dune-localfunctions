@@ -401,7 +401,7 @@ namespace Dune { namespace Impl
     {
       out.resize(size());
       auto extents = Std::extents<int,std::dynamic_extent>{size()};
-      evaluateFunction(x,TensorView([&out](auto i) -> auto& { return out[i]; }, extents));
+      evaluateFunction(x,TensorView([&out](auto i) -> auto& { return out[i][0]; }, extents));
     }
 
     /** \brief Evaluate Jacobian of all shape functions
@@ -505,7 +505,7 @@ namespace Dune { namespace Impl
     {
       out.resize(size());
       auto extents = Std::extents<int,std::dynamic_extent,dim>{size()};
-      evaluateJacobian(x,TensorView([&out](auto i, auto j) -> auto& { return out[i][j]; }, extents));
+      evaluateJacobian(x,TensorView([&out](auto i, auto j) -> auto& { return out[i][0][j]; }, extents));
     }
 
     /** \brief Evaluate partial derivatives of any order of all shape functions
@@ -612,7 +612,7 @@ namespace Dune { namespace Impl
     {
       out.resize(size());
       auto extents = Std::extents<int,std::dynamic_extent>{size()};
-      partial(partialOrders, x,TensorView([&out](auto i) -> auto& { return out[i]; }, extents));
+      partial(partialOrders, x,TensorView([&out](auto i) -> auto& { return out[i][0]; }, extents));
     }
   };
 
