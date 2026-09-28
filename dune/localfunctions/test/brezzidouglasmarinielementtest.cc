@@ -30,5 +30,8 @@ int main(int argc, char** argv)
   Dune::BrezziDouglasMariniSimplexLocalFiniteElement<double,double,2,2> bdm2simplex2dlfem(1);
   TEST_FE(bdm2simplex2dlfem);
 
+  Dune::BrezziDouglasMariniSimplexLocalFiniteElement<double,double,3,1> bdm1simplex3dlfem(1);
+  TEST_FE(bdm1simplex3dlfem);
+
   return success ? 0 : 1;
 }
