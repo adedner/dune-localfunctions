@@ -16,9 +16,40 @@
 
 #include <dune/geometry/quadraturerules.hh>
 
+#ifdef BDFM_USE_RT0_BASIS
+#include <dune/localfunctions/raviartthomas/raviartthomas0cube3d/raviartthomas0cube3dall.hh>
+#endif
 
 namespace Dune
 {
+
+  /**
+   * \ingroup BrezziDouglasFortinMariniImpl
+   * \brief Interpolation for Brezzi-Douglas-Fortin-Marini shape functions on cubes.
+   *
+   * \tparam D      Type of represent the field in the domain.
+   * \tparam R      Type of represent the field in the domain.
+   * \tparam dim    dimension of the reference element, must be >= 2.
+   * \tparam order  order of the element, must be >= 1.
+   *
+   * \nosubgrouping
+   */
+  template<class D, class R, unsigned int dim, unsigned int order>
+  class BDFMCubeLocalInterpolation;
+
+
+#ifdef BDFM_USE_RT0_BASIS
+  template<class D, class R>
+  class BDFMCubeLocalInterpolation< D, R, 3, 0>
+    : public RT0Cube3DLocalInterpolation< RT0Cube3DLocalBasis<D,R> >
+  {
+    typedef RT0Cube3DLocalInterpolation< RT0Cube3DLocalBasis<D,R> > BaseType;
+  public:
+    BDFMCubeLocalInterpolation() {}
+    BDFMCubeLocalInterpolation(std::bitset<6> s) : BaseType(s[0]){}
+  };
+#endif
+
 
   /**
    * \ingroup BrezziDouglasFortinMariniImpl
@@ -264,12 +295,14 @@ namespace Dune
 
 
 #ifndef DOXYGEN
+#ifndef BDFM_USE_RT0_BASIS
   template<class D, class R, unsigned int dim>
   class BDFMCubeLocalInterpolation<D, R, dim, 0>
   {
     static_assert(AlwaysFalse<D>::value,
                   "`BDFMCubeLocalCoefficients` not defined for order 0.");
   };
+#endif
 #endif //#ifndef DOXYGEN
 
 } // namespace Dune

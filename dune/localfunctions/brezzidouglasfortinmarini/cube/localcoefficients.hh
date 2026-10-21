@@ -12,6 +12,11 @@
 
 #include <dune/localfunctions/common/localkey.hh>
 
+#ifdef BDFM_USE_RT0_BASIS
+#include <dune/localfunctions/raviartthomas/raviartthomas0cube3d/raviartthomas0cube3dall.hh>
+#endif
+
+
 namespace Dune
 {
 
@@ -28,6 +33,19 @@ namespace Dune
    * \nosubgrouping
    * \implements Dune::LocalCoefficientsVirtualImp
    */
+  template<class D, class R, unsigned int dim, unsigned int order>
+  class BDFMCubeLocalCoefficients;
+
+#ifdef BDFM_USE_RT0_BASIS
+  template<class D, class R>
+  class BDFMCubeLocalCoefficients<D, R, 3, 0>
+    : public RT0Cube3DLocalCoefficients
+  {
+  public:
+    BDFMCubeLocalCoefficients() : RT0Cube3DLocalCoefficients () {}
+  };
+#endif
+
   template<class D, class R, unsigned int dim, unsigned int order>
   class BDFMCubeLocalCoefficients
   {
@@ -71,7 +89,7 @@ namespace Dune
   // template<class D, class R, unsigned int dim, unsigned int order>
   // constexpr std::size_t BDFMCubeLocalCoefficients<D, R, dim, order>::numDofs;
 
-
+#ifndef BDFM_USE_RT0_BASIS
 #ifndef DOXYGEN
   template<class D, class R, unsigned int dim>
   class BDFMCubeLocalCoefficients<D, R, dim, 0>
@@ -80,6 +98,7 @@ namespace Dune
                    "`BDFMCubeLocalCoefficients` not defined for order 0." );
   };
 #endif // #ifndef DOXYGEN
+#endif
 
 } // namespace Dune
 
