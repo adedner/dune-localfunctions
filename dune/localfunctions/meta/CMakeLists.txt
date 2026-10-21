@@ -6,4 +6,5 @@ add_subdirectory(power)
 install(FILES
   discontinuous.hh
   power.hh
+  product.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/localfunctions/meta)
